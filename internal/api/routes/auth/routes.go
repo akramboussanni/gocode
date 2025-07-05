@@ -73,7 +73,8 @@ func (ar *AuthRouter) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := &model.User{ID: GenerateID(), Username: cred.Username, PasswordHash: hash, Email: cred.Email, CreatedAt: time.Now().Format(time.RFC3339), Role: "user"}
+	user := &model.User{ID: GenerateID(), Username: cred.Username, PasswordHash: hash, Email: cred.Email, CreatedAt: time.Now().UTC().Unix(), Role: "user"}
+
 	if err := ar.userRepo.CreateUser(r.Context(), user); err != nil {
 		log.Println(err)
 		http.Error(w, "server error db", http.StatusInternalServerError)
