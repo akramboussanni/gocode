@@ -10,10 +10,16 @@ supported env vars:
 ```
 necessary:
 JWT_SECRET=[my jwt secret]
+
+SMTP_HOST=smtp.example.com
+SMTP_PORT=567
+SMTP_USERNAME=example@contoso.com
+SMTP_SENDER=example@contoso.com
+SMTP_PASSWORD=supersecret
 ```
 
 ## running/building
-gocode supports both `sqlite/postgres`. to run locally, use `go run -tags debug cmd/server/main.go` which will run sqlite automatically.
+gocode supports both `sqlite` and `postgres`. to run locally, use `go run -tags debug cmd/server/main.go` which will run sqlite automatically. in prod build, postgres will be used.
 
 ## warnings
-this is for my personal use/reference, the repo doesnt have caching, ratelimits, other features that may be necessary for a prod server.
+this is for my personal use/reference, the repo doesnt have caching, other features that may be necessary for a prod server.
