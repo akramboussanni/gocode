@@ -9,7 +9,6 @@ import (
 
 type Repos struct {
 	User  *UserRepo
-	Role  *RoleRepo
 	Token *TokenRepo
 }
 
@@ -25,7 +24,6 @@ type Columns struct {
 func NewRepos(db *sqlx.DB) *Repos {
 	return &Repos{
 		User:  NewUserRepo(db),
-		Role:  NewRoleRepo(db),
 		Token: NewTokenRepo(db),
 	}
 }
