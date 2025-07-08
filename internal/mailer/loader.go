@@ -1,6 +1,7 @@
 package mailer
 
 import (
+	"bytes"
 	"embed"
 	"html/template"
 	"os"
@@ -17,7 +18,7 @@ func GetTemplate(name string) (*template.Template, error) {
 	}
 
 	path := "templates/" + name + ".html"
-	tmpl, err := loadTemplate(path)
+	tmpl, err := getTemplate(path)
 
 	if err != nil {
 		return nil, err
@@ -27,9 +28,27 @@ func GetTemplate(name string) (*template.Template, error) {
 	return tmpl, nil
 }
 
-func loadTemplate(path string) (*template.Template, error) {
+func getTemplate(path string) (*template.Template, error) {
 	if _, err := os.Stat(path); err == nil {
 		return template.ParseFiles(path)
 	}
 	return template.ParseFS(embedded, path)
+}
+
+func LoadTemplate(name string, data any) (string, error) {
+	tmpl, err := GetTemplate(name)
+	if err != nil {
+		return "", err
+	}
+
+	return renderTemplate(tmpl, data)
+}
+
+func renderTemplate(tmpl *template.Template, data any) (string, error) {
+	var buf bytes.Buffer
+	err := tmpl.Execute(&buf, data)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }

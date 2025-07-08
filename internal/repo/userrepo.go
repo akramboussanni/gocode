@@ -2,33 +2,38 @@ package repo
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/akramboussanni/gocode/internal/model"
 	"github.com/jmoiron/sqlx"
 )
 
 type UserRepo struct {
+	Columns
 	db *sqlx.DB
 }
 
 func NewUserRepo(db *sqlx.DB) *UserRepo {
-	return &UserRepo{db: db}
+	repo := &UserRepo{db: db}
+	repo.Columns = ExtractColumns((*model.User)(nil))
+	return repo
 }
 
-const userColumns = "id, username, email, password_hash, created_at"
-
 func (r *UserRepo) CreateUser(ctx context.Context, user *model.User) error {
-	query := `
-        INSERT INTO users (id, username, email, password_hash, created_at, user_role)
-        VALUES (:id, :username, :email, :password_hash, :created_at, :user_role)
-    `
+	query := fmt.Sprintf(
+		"INSERT INTO users (%s) VALUES (%s)",
+		r.AllRaw,
+		r.AllPrefixed,
+	)
 	_, err := r.db.NamedExecContext(ctx, query, user)
 	return err
 }
 
 func (r *UserRepo) GetUserById(ctx context.Context, id int64) (*model.User, error) {
 	var user model.User
-	err := r.db.GetContext(ctx, &user, "SELECT "+userColumns+" FROM users WHERE id=$1", id)
+	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", r.SafeRaw)
+	err := r.db.GetContext(ctx, &user, query, id)
 	return &user, err
 }
 
@@ -46,19 +51,20 @@ func (r *UserRepo) DuplicateEmail(ctx context.Context, email string) (bool, erro
 
 func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	var user model.User
-	err := r.db.GetContext(ctx, &user, "SELECT "+userColumns+" FROM users WHERE email=$1", email)
+	query := fmt.Sprintf("SELECT %s FROM users WHERE email=$1", r.SafeRaw)
+	err := r.db.GetContext(ctx, &user, query, email)
 	return &user, err
 }
 
 func (r *UserRepo) UpdateUser(ctx context.Context, u *model.User) error {
-	query := `
-		UPDATE users
-		SET username = :username,
-		    email = :email,
-		    password_hash = :password_hash,
-		    created_at = :created_at
-		WHERE id = :id
-	`
+	var sets []string
+	for _, col := range r.safeColumns {
+		if col == "id" {
+			continue
+		}
+		sets = append(sets, fmt.Sprintf("%s = :%s", col, col))
+	}
+	query := fmt.Sprintf("UPDATE users SET %s WHERE id = :id", strings.Join(sets, ", "))
 	_, err := r.db.NamedExecContext(ctx, query, u)
 	return err
 }
@@ -66,5 +72,27 @@ func (r *UserRepo) UpdateUser(ctx context.Context, u *model.User) error {
 func (r *UserRepo) DeleteUser(ctx context.Context, id int64) error {
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := r.db.ExecContext(ctx, query, id)
+	return err
+}
+
+func (r *UserRepo) GetUserByTokenHash(ctx context.Context, tokenHash string) (*model.User, error) {
+	var user model.User
+	query := fmt.Sprintf("SELECT %s FROM users WHERE email_confirm_token = $1", r.AllRaw)
+	err := r.db.GetContext(ctx, &user, query, tokenHash)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepo) MarkUserConfirmed(ctx context.Context, userID int64) error {
+	query := `
+		UPDATE users
+		SET email_confirmed = TRUE,
+		    email_confirm_token = '',
+		    email_confirm_issuedat = 0
+		WHERE id = $1
+	`
+	_, err := r.db.ExecContext(ctx, query, userID)
 	return err
 }

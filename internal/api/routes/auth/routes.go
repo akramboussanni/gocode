@@ -1,6 +1,9 @@
+// this file contains translations
 package auth
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,10 +12,12 @@ import (
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/jwt"
+	"github.com/akramboussanni/gocode/internal/mailer"
 	"github.com/akramboussanni/gocode/internal/middleware"
 	"github.com/akramboussanni/gocode/internal/model"
 	"github.com/akramboussanni/gocode/internal/repo"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httprate"
 	"github.com/google/uuid"
 )
 
@@ -26,18 +31,30 @@ func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo) http.Hand
 	r := chi.NewRouter()
 
 	r.Use(maxBytesMiddleware(1 << 20))
-	r.Post("/register", ar.handleRegister)
-	r.Post("/login", ar.handleLogin)
-	r.Post("/logout", ar.handleLogout)
 
+	//10/min
+	r.Group(func(r chi.Router) {
+		r.Use(httprate.LimitByIP(10, 1*time.Minute))
+		r.Post("/register", ar.handleRegister)
+		r.Post("/login", ar.handleLogin)
+		r.Post("/logout", ar.handleLogout)
+	})
+
+	//30/min
 	r.Group(func(r chi.Router) {
 		r.Use(ar.authMiddleware)
+		r.Use(httprate.LimitByIP(30, 1*time.Minute))
 		r.Get("/me", ar.handleProfile)
+	})
+
+	//5/min
+	r.Group(func(r chi.Router) {
+		r.Use(httprate.LimitByIP(5, 1*time.Minute))
+		r.Post("/confirm-email", ar.handleConfirmEmail)
 	})
 
 	return r
 }
-
 func (ar *AuthRouter) handleRegister(w http.ResponseWriter, r *http.Request) {
 	var cred Credentials
 
@@ -69,15 +86,28 @@ func (ar *AuthRouter) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := HashPassword(cred.Password)
 	if err != nil {
-		http.Error(w, "server error hashing", http.StatusInternalServerError)
+		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
 
-	user := &model.User{ID: GenerateID(), Username: cred.Username, PasswordHash: hash, Email: cred.Email, CreatedAt: time.Now().UTC().Unix(), Role: "user"}
+	confirmToken, err := GetRandomToken(16)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	user := &model.User{ID: GenerateID(), Username: cred.Username, PasswordHash: hash, Email: cred.Email, CreatedAt: time.Now().UTC().Unix(), Role: "user", EmailConfirmed: false, EmailConfirmToken: confirmToken.Hash, EmailConfirmIssuedAt: time.Now().UTC().Unix()}
+
+	headers := []mailer.MailHeader{
+		mailer.MakeHeader("Subject", "Email confirmation"),
+		mailer.MakeHeader("To", cred.Email),
+	}
+
+	mailer.Send("confirmregister", headers, map[string]any{"Token": confirmToken.Hash})
 
 	if err := ar.userRepo.CreateUser(r.Context(), user); err != nil {
 		log.Println(err)
-		http.Error(w, "server error db", http.StatusInternalServerError)
+		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -98,13 +128,13 @@ func (ar *AuthRouter) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !ComparePassword(user.PasswordHash, cred.Password) {
+	if !ComparePassword(user.PasswordHash, cred.Password) || !user.EmailConfirmed {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
 	now := time.Now().Unix()
-	exp := now + 7*24*3600 // 7d expiry
+	exp := now + 7*24*3600 //7d
 
 	claims := jwt.Claims{
 		UserID:     user.ID,
@@ -147,7 +177,7 @@ func (ar *AuthRouter) handleProfile(w http.ResponseWriter, r *http.Request) {
 		ID        int64  `json:"id"`
 		Username  string `json:"username"`
 		Email     string `json:"email"`
-		CreatedAt string `json:"created_at"`
+		CreatedAt int64  `json:"created_at"`
 		Role      string `json:"role"`
 	}{
 		ID:        user.ID,
@@ -171,10 +201,44 @@ func (ar *AuthRouter) handleLogout(w http.ResponseWriter, r *http.Request) {
 	err := ar.tokenRepo.RevokeToken(r.Context(), model.JwtBlacklist{
 		TokenID:   claims.TokenID,
 		UserID:    claims.UserID,
-		ExpiresAt: expiration.Format(time.RFC3339),
+		ExpiresAt: expiration.UTC().Unix(),
 	})
 	if err != nil {
 		log.Println(err)
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (ar *AuthRouter) handleConfirmEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		http.Error(w, "Missing token", http.StatusBadRequest)
+		return
+	}
+
+	sha := sha256.Sum256([]byte(token))
+	hash := base64.RawURLEncoding.EncodeToString(sha[:])
+	user, err := ar.userRepo.GetUserByTokenHash(r.Context(), hash)
+	if err != nil {
+		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	if user.EmailConfirmed { // this scenario should not happen. normally
+		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	expiry := user.EmailConfirmIssuedAt + 3600*24 //24h expiry
+	if expiry < time.Now().UTC().Unix() {
+		http.Error(w, "expired token, please request a new one.", http.StatusUnauthorized)
+		return
+	}
+
+	if err = ar.userRepo.MarkUserConfirmed(r.Context(), user.ID); err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return
 	}

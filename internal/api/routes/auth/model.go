@@ -9,3 +9,8 @@ type Credentials struct {
 type LoginResponse struct {
 	Token string `json:"token"`
 }
+
+type Token struct {
+	Raw  string
+	Hash string
+}

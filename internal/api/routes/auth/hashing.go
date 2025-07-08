@@ -2,7 +2,9 @@ package auth
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 
 	"github.com/akramboussanni/gocode/config"
@@ -23,4 +25,31 @@ func HashPassword(password string) (string, error) {
 func ComparePassword(hashed, plain string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(plain))
 	return err == nil
+}
+
+func GenerateRandomBytes(bytes uint8) ([]byte, error) {
+	b := make([]byte, bytes)
+
+	_, err := rand.Read(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+
+func GetRandomToken(bytes uint8) (*Token, error) {
+	b, err := GenerateRandomBytes(bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	enc := base64.RawURLEncoding.EncodeToString(b)
+	h := sha256.New()
+	h.Write([]byte(b))
+
+	return &Token{
+		Raw:  enc,
+		Hash: base64.RawURLEncoding.EncodeToString(h.Sum(nil)),
+	}, err
 }

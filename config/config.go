@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/base64"
 	"os"
+	"strconv"
 
 	"github.com/akramboussanni/gocode/internal/mailer"
 	"github.com/joho/godotenv"
@@ -19,9 +20,15 @@ func Init() {
 		panic(err)
 	}
 
+	mPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	if err != nil {
+		panic(err)
+	}
+
 	MailerSetting = mailer.MailerSetting{
 		Host:     os.Getenv("SMTP_HOST"),
-		Port:     os.Getenv("SMTP_PORT"),
+		Port:     mPort,
+		Username: os.Getenv("SMTP_USERNAME"),
 		Sender:   os.Getenv("SMTP_SENDER"),
 		Password: os.Getenv("SMTP_PASSWORD"),
 	}

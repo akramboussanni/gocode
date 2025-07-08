@@ -8,6 +8,7 @@ import (
 	"github.com/akramboussanni/gocode/internal/api/routes"
 	"github.com/akramboussanni/gocode/internal/api/routes/auth"
 	"github.com/akramboussanni/gocode/internal/db"
+	"github.com/akramboussanni/gocode/internal/mailer"
 	"github.com/akramboussanni/gocode/internal/repo"
 )
 
@@ -20,6 +21,8 @@ func main() {
 
 	db.Init("todo")
 	db.RunMigrations("./migrations")
+
+	mailer.Init(config.MailerSetting)
 
 	repos := repo.NewRepos(db.DB)
 	r := routes.SetupRouter(repos)
