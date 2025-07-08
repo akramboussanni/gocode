@@ -12,7 +12,7 @@ necessary:
 JWT_SECRET=[my jwt secret]
 
 SMTP_HOST=smtp.example.com
-SMTP_PORT=567
+SMTP_PORT=587
 SMTP_USERNAME=example@contoso.com
 SMTP_SENDER=example@contoso.com
 SMTP_PASSWORD=supersecret

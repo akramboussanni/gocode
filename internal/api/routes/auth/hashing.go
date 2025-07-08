@@ -44,12 +44,11 @@ func GetRandomToken(bytes uint8) (*Token, error) {
 		return nil, err
 	}
 
-	enc := base64.RawURLEncoding.EncodeToString(b)
-	h := sha256.New()
-	h.Write([]byte(b))
+	enc := base64.URLEncoding.EncodeToString(b)
+	hashed := sha256.Sum256(b)
 
 	return &Token{
 		Raw:  enc,
-		Hash: base64.RawURLEncoding.EncodeToString(h.Sum(nil)),
+		Hash: base64.URLEncoding.EncodeToString(hashed[:]),
 	}, err
 }

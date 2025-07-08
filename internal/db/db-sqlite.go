@@ -10,7 +10,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 var DB *sqlx.DB
@@ -19,7 +19,7 @@ func Init(dsn string) {
 	log.Println("using sqlite db")
 
 	var err error
-	DB, err = sqlx.Open("sqlite3", "gocode.db")
+	DB, err = sqlx.Open("sqlite", "gocode.db")
 	if err != nil {
 		log.Fatalf("cannot open database: %v", err)
 	}
@@ -36,7 +36,7 @@ func RunMigrations(migrationsPath string) {
 
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+migrationsPath,
-		"sqlite3", driver,
+		"sqlite", driver,
 	)
 	if err != nil {
 		log.Fatalf("failed to create migrate instance: %v", err)

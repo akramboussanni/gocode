@@ -32,7 +32,7 @@ func (r *UserRepo) CreateUser(ctx context.Context, user *model.User) error {
 
 func (r *UserRepo) GetUserById(ctx context.Context, id int64) (*model.User, error) {
 	var user model.User
-	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", r.SafeRaw)
+	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", r.AllRaw)
 	err := r.db.GetContext(ctx, &user, query, id)
 	return &user, err
 }
@@ -51,7 +51,7 @@ func (r *UserRepo) DuplicateEmail(ctx context.Context, email string) (bool, erro
 
 func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	var user model.User
-	query := fmt.Sprintf("SELECT %s FROM users WHERE email=$1", r.SafeRaw)
+	query := fmt.Sprintf("SELECT %s FROM users WHERE email=$1", r.AllRaw)
 	err := r.db.GetContext(ctx, &user, query, email)
 	return &user, err
 }

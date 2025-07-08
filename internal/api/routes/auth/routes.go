@@ -51,6 +51,7 @@ func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo) http.Hand
 	r.Group(func(r chi.Router) {
 		r.Use(httprate.LimitByIP(5, 1*time.Minute))
 		r.Post("/confirm-email", ar.handleConfirmEmail)
+		r.Post("/resend-confirmation", ar.handleResendConfirmation)
 	})
 
 	return r
@@ -103,7 +104,10 @@ func (ar *AuthRouter) handleRegister(w http.ResponseWriter, r *http.Request) {
 		mailer.MakeHeader("To", cred.Email),
 	}
 
-	mailer.Send("confirmregister", headers, map[string]any{"Token": confirmToken.Hash})
+	if err = mailer.Send("confirmregister", headers, map[string]any{"Token": confirmToken.Raw}); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
 
 	if err := ar.userRepo.CreateUser(r.Context(), user); err != nil {
 		log.Println(err)
@@ -124,12 +128,12 @@ func (ar *AuthRouter) handleLogin(w http.ResponseWriter, r *http.Request) {
 	user, err := ar.userRepo.GetUserByEmail(r.Context(), cred.Email)
 	if err != nil || user == nil {
 		log.Println(err)
-		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		http.Error(w, "invalid credentials email", http.StatusUnauthorized)
 		return
 	}
 
 	if !ComparePassword(user.PasswordHash, cred.Password) || !user.EmailConfirmed {
-		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		http.Error(w, "invalid credentials pass", http.StatusUnauthorized)
 		return
 	}
 
@@ -219,11 +223,17 @@ func (ar *AuthRouter) handleConfirmEmail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	sha := sha256.Sum256([]byte(token))
-	hash := base64.RawURLEncoding.EncodeToString(sha[:])
+	b, err := base64.URLEncoding.DecodeString(token)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	sha := sha256.Sum256(b)
+	hash := base64.URLEncoding.EncodeToString(sha[:])
 	user, err := ar.userRepo.GetUserByTokenHash(r.Context(), hash)
 	if err != nil {
-		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		http.Error(w, "invalid credentials (no acc found)", http.StatusUnauthorized)
 		return
 	}
 
@@ -244,6 +254,54 @@ func (ar *AuthRouter) handleConfirmEmail(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (ar *AuthRouter) handleResendConfirmation(w http.ResponseWriter, r *http.Request) {
+	type request struct {
+		Email string `json:"email"`
+	}
+	var req request
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	user, err := ar.userRepo.GetUserByEmail(r.Context(), req.Email)
+	if err != nil || user == nil {
+		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	if user.EmailConfirmed {
+		http.Error(w, "email already confirmed", http.StatusBadRequest)
+		return
+	}
+
+	confirmToken, err := GetRandomToken(16)
+	if err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	user.EmailConfirmToken = confirmToken.Hash
+	user.EmailConfirmIssuedAt = time.Now().UTC().Unix()
+
+	if err := ar.userRepo.UpdateUser(r.Context(), user); err != nil {
+		http.Error(w, "server error", http.StatusInternalServerError)
+		return
+	}
+
+	headers := []mailer.MailHeader{
+		mailer.MakeHeader("Subject", "Email confirmation"),
+		mailer.MakeHeader("To", user.Email),
+	}
+
+	if err := mailer.Send("confirmregister", headers, map[string]any{"Token": confirmToken.Raw}); err != nil {
+		http.Error(w, "failed to send email", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, 200, map[string]string{"message": "confirmation email resent"})
 }
 
 func (ar *AuthRouter) authMiddleware(next http.Handler) http.Handler {
