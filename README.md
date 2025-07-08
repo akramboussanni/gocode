@@ -19,7 +19,7 @@ SMTP_PASSWORD=supersecret
 ```
 
 ## mailing
-by default, the mailer will use embedded templates in `mailer/templates/*.html`. at runtime, if a templates/ folder is found, with a matching template name, it will replace the embedded template (only on first load, not any time during app lifetime)
+by default, the mailer (smtp) will use embedded templates in `mailer/templates/*.html`. at runtime, if a templates/ folder is found, with a matching template name, it will replace the embedded template (only on first load, not any time during app lifetime)
 
 ## running/building
 gocode supports both `sqlite` and `postgres`. to run locally, use `go run -tags debug cmd/server/main.go` which will run sqlite automatically. in prod build, postgres will be used.

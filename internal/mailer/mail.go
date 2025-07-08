@@ -1,8 +1,6 @@
 package mailer
 
 import (
-	"log"
-
 	"gopkg.in/gomail.v2"
 )
 
@@ -15,14 +13,8 @@ func Init(setting MailerSetting) {
 }
 
 func Send(name string, headers []MailHeader, data any) error {
-	log.Println("[Mailer] Preparing to send email")
-	log.Printf("[Mailer] Template name: %s\n", name)
-	log.Printf("[Mailer] Headers: %+v\n", headers)
-	log.Printf("[Mailer] Data: %+v\n", data)
-
 	body, err := LoadTemplate(name, data)
 	if err != nil {
-		log.Println("[Mailer] Failed to load template:", err)
 		return err
 	}
 
@@ -35,13 +27,10 @@ func Send(name string, headers []MailHeader, data any) error {
 
 	msg.SetBody("text/html", body)
 
-	log.Println("[Mailer] Sending email...")
 	if err := dialer.DialAndSend(msg); err != nil {
-		log.Println("[Mailer] Failed to send email:", err)
 		return err
 	}
 
-	log.Println("[Mailer] Email sent successfully")
 	return nil
 }
 
