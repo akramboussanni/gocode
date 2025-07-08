@@ -170,28 +170,13 @@ func (ar *AuthRouter) handleProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := ar.userRepo.GetUserById(r.Context(), userID)
+	user, err := ar.userRepo.GetUserByIdSafe(r.Context(), userID)
 	if err != nil {
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// temporary solution that will later be recoded
-	response := struct {
-		ID        int64  `json:"id"`
-		Username  string `json:"username"`
-		Email     string `json:"email"`
-		CreatedAt int64  `json:"created_at"`
-		Role      string `json:"role"`
-	}{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
-		Role:      user.Role,
-	}
-
-	writeJSON(w, 200, response)
+	writeJSON(w, 200, user)
 }
 
 func (ar *AuthRouter) handleLogout(w http.ResponseWriter, r *http.Request) {

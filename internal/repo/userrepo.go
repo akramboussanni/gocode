@@ -37,6 +37,13 @@ func (r *UserRepo) GetUserById(ctx context.Context, id int64) (*model.User, erro
 	return &user, err
 }
 
+func (r *UserRepo) GetUserByIdSafe(ctx context.Context, id int64) (*model.User, error) {
+	var user model.User
+	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", r.SafeRaw)
+	err := r.db.GetContext(ctx, &user, query, id)
+	return &user, err
+}
+
 func (r *UserRepo) DuplicateName(ctx context.Context, username string) (bool, error) {
 	var exists bool
 	err := r.db.GetContext(ctx, &exists, "SELECT EXISTS(SELECT 1 FROM users WHERE username=$1)", username)
