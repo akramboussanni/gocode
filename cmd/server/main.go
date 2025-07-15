@@ -6,15 +6,15 @@ import (
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api/routes"
-	"github.com/akramboussanni/gocode/internal/api/routes/auth"
 	"github.com/akramboussanni/gocode/internal/db"
 	"github.com/akramboussanni/gocode/internal/mailer"
 	"github.com/akramboussanni/gocode/internal/repo"
+	"github.com/akramboussanni/gocode/internal/utils"
 )
 
 func main() {
 	config.Init()
-	err := auth.InitSnowflake(1)
+	err := utils.InitSnowflake(1)
 	if err != nil {
 		panic(err)
 	}

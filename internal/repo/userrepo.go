@@ -82,7 +82,7 @@ func (r *UserRepo) DeleteUser(ctx context.Context, id int64) error {
 	return err
 }
 
-func (r *UserRepo) GetUserByTokenHash(ctx context.Context, tokenHash string) (*model.User, error) {
+func (r *UserRepo) GetUserByConfirmationToken(ctx context.Context, tokenHash string) (*model.User, error) {
 	var user model.User
 	query := fmt.Sprintf("SELECT %s FROM users WHERE email_confirm_token = $1", r.AllRaw)
 	err := r.db.GetContext(ctx, &user, query, tokenHash)
@@ -98,6 +98,27 @@ func (r *UserRepo) MarkUserConfirmed(ctx context.Context, userID int64) error {
 		SET email_confirmed = TRUE,
 		    email_confirm_token = '',
 		    email_confirm_issuedat = 0
+		WHERE id = $1
+	`
+	_, err := r.db.ExecContext(ctx, query, userID)
+	return err
+}
+
+func (r *UserRepo) GetUserByResetToken(ctx context.Context, tokenHash string) (*model.User, error) {
+	var user model.User
+	query := fmt.Sprintf("SELECT %s FROM users WHERE password_reset_token = $1", r.AllRaw)
+	err := r.db.GetContext(ctx, &user, query, tokenHash)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepo) InvalidateResetToken(ctx context.Context, userID int64) error {
+	query := `
+		UPDATE users
+		SET password_reset_token = '',
+		    password_reset_issuedat = 0
 		WHERE id = $1
 	`
 	_, err := r.db.ExecContext(ctx, query, userID)

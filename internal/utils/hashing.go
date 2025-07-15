@@ -1,4 +1,4 @@
-package auth
+package utils
 
 import (
 	"crypto/hmac"
@@ -36,6 +36,11 @@ func GenerateRandomBytes(bytes uint8) ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+type Token struct {
+	Raw  string
+	Hash string
 }
 
 func GetRandomToken(bytes uint8) (*Token, error) {

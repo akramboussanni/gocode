@@ -20,6 +20,10 @@ func Init() {
 		panic(err)
 	}
 
+	if len(JwtSecret) < 32 {
+		panic("jwt secret must be at least 32bytes")
+	}
+
 	mPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
 	if err != nil {
 		panic(err)

@@ -1,4 +1,4 @@
-package auth
+package handler
 
 type Credentials struct {
 	Username string `json:"username"`
@@ -8,9 +8,4 @@ type Credentials struct {
 
 type LoginResponse struct {
 	Token string `json:"token"`
-}
-
-type Token struct {
-	Raw  string
-	Hash string
 }
