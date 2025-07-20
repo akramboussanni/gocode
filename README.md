@@ -16,13 +16,17 @@ SMTP_PORT=587
 SMTP_USERNAME=example@contoso.com
 SMTP_SENDER=example@contoso.com
 SMTP_PASSWORD=supersecret
+
+optional:
+RECAPTCHA_V3_SECRET=obtain from google website
+RECAPTCHA_V3_ENABLED=true|false
 ```
 
 ## mailing
 by default, the mailer (smtp) will use embedded templates in `mailer/templates/*.html`. at runtime, if a templates/ folder is found, with a matching template name, it will replace the embedded template (only on first load, not any time during app lifetime)
 
 ## running/building
-gocode supports both `sqlite` and `postgres`. to run locally, use `go run -tags debug cmd/server/main.go` which will run sqlite automatically. in prod build, postgres will be used.
+gocode supports both `sqlite` and `postgres`. to run locally, use `go run -tags=debug cmd/server/main.go` which will run sqlite automatically. if no debug tag is applied, postgres will be used instead.
 
 ## warnings
 this is for my personal use/reference, the repo doesnt have caching, other features that may be necessary for a prod server.
