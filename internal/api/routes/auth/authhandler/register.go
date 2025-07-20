@@ -56,7 +56,7 @@ func (ar *AuthRouter) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := &model.User{ID: utils.GenerateID(), Username: cred.Username, PasswordHash: hash, Email: cred.Email, CreatedAt: time.Now().UTC().Unix(), Role: "user", EmailConfirmed: false}
+	user := &model.User{ID: utils.GenerateSnowflakeID(), Username: cred.Username, PasswordHash: hash, Email: cred.Email, CreatedAt: time.Now().UTC().Unix(), Role: "user", EmailConfirmed: false}
 
 	if err := ar.UserRepo.CreateUser(r.Context(), user); err != nil {
 		log.Println(err)

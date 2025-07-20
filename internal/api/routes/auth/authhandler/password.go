@@ -130,8 +130,8 @@ func (ar *AuthRouter) HandleChangePassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	user := utils.FetchUserWithContext(r.Context(), w, ar.UserRepo.GetUserById)
-	if user == nil {
+	user, ok := utils.UserFromContext(r.Context())
+	if !ok {
 		return
 	}
 

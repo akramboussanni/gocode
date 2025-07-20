@@ -1,13 +1,10 @@
 package authhandler
 
 import (
-	"time"
-
 	"github.com/akramboussanni/gocode/internal/jwt"
 	"github.com/akramboussanni/gocode/internal/mailer"
 	"github.com/akramboussanni/gocode/internal/model"
 	"github.com/akramboussanni/gocode/internal/utils"
-	"github.com/google/uuid"
 )
 
 func GenerateTokenAndSendEmail(email, templateName, subject, url string) (*model.Token, error) {
@@ -29,17 +26,7 @@ func GenerateTokenAndSendEmail(email, templateName, subject, url string) (*model
 	return token, nil
 }
 
-func GenerateLogin(user *model.User) LoginResponse {
-	now := time.Now().Unix()
-	claims := jwt.Claims{
-		UserID:   user.ID,
-		TokenID:  uuid.New().String(),
-		IssuedAt: now,
-		Email:    user.Email,
-		Role:     user.Role,
-	}
-
-	token := jwt.CreateJwt(claims)
+func GenerateLogin(token jwt.Jwt) LoginResponse {
 	sessionToken := token.WithType(jwt.Credentials).GenerateToken()
 	refreshToken := token.WithType(jwt.Refresh).GenerateToken()
 

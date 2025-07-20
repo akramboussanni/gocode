@@ -26,6 +26,7 @@ type Header struct {
 type Claims struct {
 	UserID     int64     `json:"sub"`
 	TokenID    string    `json:"jti"`
+	SessionID  int       `json:"sid"`
 	IssuedAt   int64     `json:"iat"`
 	Expiration int64     `json:"exp"`
 	Email      string    `json:"email"`

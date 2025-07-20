@@ -13,16 +13,16 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func AddAuth(r chi.Router, tr *repo.TokenRepo) {
+func AddAuth(r chi.Router, ur *repo.UserRepo, tr *repo.TokenRepo) {
 	r.Use(func(next http.Handler) http.Handler {
-		return JWTAuth(config.JwtSecret, tr, jwt.Credentials)(next)
+		return JWTAuth(config.JwtSecret, ur, tr, jwt.Credentials)(next)
 	})
 }
 
-func JWTAuth(secret []byte, tr *repo.TokenRepo, expectedType jwt.TokenType) func(http.Handler) http.Handler {
+func JWTAuth(secret []byte, ur *repo.UserRepo, tr *repo.TokenRepo, expectedType jwt.TokenType) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims := GetClaimsFromHeader(w, r, secret, tr)
+			claims := GetClaimsFromHeader(w, r, secret, ur, tr)
 			if claims == nil {
 				return
 			}
@@ -32,13 +32,24 @@ func JWTAuth(secret []byte, tr *repo.TokenRepo, expectedType jwt.TokenType) func
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), utils.UserIDKey, claims.UserID)
+			user, err := ur.GetUserById(r.Context(), claims.UserID)
+			if err != nil {
+				api.WriteInternalError(w)
+				return
+			}
+
+			if claims.SessionID != user.JwtSessionID {
+				api.WriteInvalidCredentials(w)
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), utils.UserKey, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func GetClaimsFromHeader(w http.ResponseWriter, r *http.Request, secret []byte, tr *repo.TokenRepo) *jwt.Claims {
+func GetClaimsFromHeader(w http.ResponseWriter, r *http.Request, secret []byte, ur *repo.UserRepo, tr *repo.TokenRepo) *jwt.Claims {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 		api.WriteInvalidCredentials(w)

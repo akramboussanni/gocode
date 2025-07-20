@@ -133,3 +133,13 @@ func (r *UserRepo) ChangeUserPassword(ctx context.Context, newPasswordHash strin
 	_, err := r.db.ExecContext(ctx, query, newPasswordHash, userID)
 	return err
 }
+
+func (r *UserRepo) IncrementJwtSessionId(ctx context.Context, userID int64) error {
+	query := `
+		UPDATE users
+		SET jwt_session_id = jwt_session_id + 1
+		WHERE id = $2
+	`
+	_, err := r.db.ExecContext(ctx, query, userID)
+	return err
+}

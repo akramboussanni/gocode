@@ -26,17 +26,6 @@ func NewLockoutRepo(db *sqlx.DB) *LockoutRepo {
 func (r *LockoutRepo) IsLockedOut(ctx context.Context, userID int64, ipAddress string) (bool, error) {
 	now := time.Now().UTC().Unix()
 
-	// for now, we will keep this data in db for logging.
-	/*
-		_, err := r.db.ExecContext(ctx, `
-			DELETE FROM lockouts
-			WHERE user_id = $1 AND ip_address = $2 AND locked_until <= $3
-		`, userID, ipAddress, now)
-		if err != nil {
-			return false, err
-		}
-	*/
-
 	var exists bool
 	err := r.db.GetContext(ctx, &exists, `
 		SELECT EXISTS(

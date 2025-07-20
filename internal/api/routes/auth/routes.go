@@ -23,6 +23,7 @@ func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo, lockoutRe
 		middleware.AddRecaptcha(r)
 		r.Post("/login", ar.HandleLogin)
 		r.Post("/logout", ar.HandleLogout)
+		r.Post("/logout-all", ar.HandleLogoutEverywhere)
 	})
 
 	//2/min+recaptcha
@@ -35,14 +36,7 @@ func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo, lockoutRe
 
 	//30/min+auth+recaptcha
 	r.Group(func(r chi.Router) {
-		middleware.AddAuth(r, ar.TokenRepo)
-		r.Use(httprate.LimitByIP(30, 1*time.Minute))
-		r.Get("/me", ar.HandleProfile)
-	})
-
-	//5/min+auth+recaptcha
-	r.Group(func(r chi.Router) {
-		middleware.AddAuth(r, ar.TokenRepo)
+		middleware.AddAuth(r, ar.UserRepo, ar.TokenRepo)
 		r.Use(httprate.LimitByIP(30, 1*time.Minute))
 		r.Get("/me", ar.HandleProfile)
 	})
@@ -50,7 +44,7 @@ func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo, lockoutRe
 	//8/min+auth+recaptcha
 	r.Group(func(r chi.Router) {
 		middleware.AddRecaptcha(r)
-		middleware.AddAuth(r, ar.TokenRepo)
+		middleware.AddAuth(r, ar.UserRepo, ar.TokenRepo)
 		r.Use(httprate.LimitByIP(8, 1*time.Minute))
 		r.Post("/change-password", ar.HandleChangePassword)
 	})

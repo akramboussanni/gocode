@@ -88,9 +88,12 @@ func (ar *AuthRouter) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//readd  email confirm check
+	if !user.EmailConfirmed {
+		api.WriteInvalidCredentials(w)
+		return
+	}
 
-	api.WriteJSON(w, 200, GenerateLogin(user))
+	api.WriteJSON(w, 200, GenerateLogin(jwt.CreateJwtFromUser(user)))
 }
 
 // @Summary Refresh JWT tokens
@@ -131,5 +134,5 @@ func (ar *AuthRouter) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ar.TokenRepo.RevokeToken(r.Context(), blacklist)
-	api.WriteJSON(w, 200, GenerateLogin(user))
+	api.WriteJSON(w, 200, GenerateLogin(jwt.CreateJwtFromUser(user)))
 }

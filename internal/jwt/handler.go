@@ -10,20 +10,22 @@ import (
 	"time"
 
 	"github.com/akramboussanni/gocode/config"
+	"github.com/akramboussanni/gocode/internal/model"
 	"github.com/akramboussanni/gocode/internal/repo"
+	"github.com/google/uuid"
 )
 
 func (jwt Jwt) GenerateToken() string {
 	header, _ := json.Marshal(jwt.Header)
 	payload, _ := json.Marshal(jwt.Payload)
 
-	data := base64.RawURLEncoding.EncodeToString(header) + "." + base64.RawURLEncoding.EncodeToString(payload)
+	data := base64.URLEncoding.EncodeToString(header) + "." + base64.URLEncoding.EncodeToString(payload)
 
 	h := hmac.New(sha256.New, config.JwtSecret)
 	h.Write([]byte(data))
 	rawSig := h.Sum(nil)
 
-	return data + "." + base64.RawURLEncoding.EncodeToString(rawSig)
+	return data + "." + base64.URLEncoding.EncodeToString(rawSig)
 }
 
 func ValidateToken(token string, secret []byte, tr *repo.TokenRepo) (*Claims, error) {
@@ -33,7 +35,7 @@ func ValidateToken(token string, secret []byte, tr *repo.TokenRepo) (*Claims, er
 	}
 
 	data := parts[0] + "." + parts[1]
-	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
+	signature, err := base64.URLEncoding.DecodeString(parts[2])
 	if err != nil {
 		return nil, errors.New("invalid signature encoding")
 	}
@@ -46,7 +48,7 @@ func ValidateToken(token string, secret []byte, tr *repo.TokenRepo) (*Claims, er
 		return nil, errors.New("invalid token signature")
 	}
 
-	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	payloadBytes, err := base64.URLEncoding.DecodeString(parts[1])
 	if err != nil {
 		return nil, errors.New("invalid payload encoding")
 	}
@@ -79,4 +81,18 @@ func CreateJwt(claims Claims) Jwt {
 		},
 		Payload: claims,
 	}
+}
+
+func CreateJwtFromUser(user *model.User) Jwt {
+	now := time.Now().Unix()
+	claims := Claims{
+		UserID:    user.ID,
+		TokenID:   uuid.New().String(),
+		IssuedAt:  now,
+		Email:     user.Email,
+		Role:      user.Role,
+		SessionID: user.JwtSessionID,
+	}
+
+	return CreateJwt(claims)
 }
