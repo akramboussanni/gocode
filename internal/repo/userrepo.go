@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/akramboussanni/gocode/internal/model"
 	"github.com/jmoiron/sqlx"
@@ -63,19 +62,6 @@ func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*model.Use
 	return &user, err
 }
 
-func (r *UserRepo) UpdateUser(ctx context.Context, u *model.User) error {
-	var sets []string
-	for _, col := range r.safeColumns {
-		if col == "id" {
-			continue
-		}
-		sets = append(sets, fmt.Sprintf("%s = :%s", col, col))
-	}
-	query := fmt.Sprintf("UPDATE users SET %s WHERE id = :id", strings.Join(sets, ", "))
-	_, err := r.db.NamedExecContext(ctx, query, u)
-	return err
-}
-
 func (r *UserRepo) DeleteUser(ctx context.Context, id int64) error {
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := r.db.ExecContext(ctx, query, id)
@@ -92,6 +78,17 @@ func (r *UserRepo) GetUserByConfirmationToken(ctx context.Context, tokenHash str
 	return &user, nil
 }
 
+func (r *UserRepo) AssignUserConfirmToken(ctx context.Context, token string, iat int64, userID int64) error {
+	query := `
+		UPDATE users
+		SET email_confirm_token = $1,
+		    email_confirm_issuedat = $2
+		WHERE id = $3
+	`
+	_, err := r.db.ExecContext(ctx, query, token, iat, userID)
+	return err
+}
+
 func (r *UserRepo) MarkUserConfirmed(ctx context.Context, userID int64) error {
 	query := `
 		UPDATE users
@@ -101,6 +98,17 @@ func (r *UserRepo) MarkUserConfirmed(ctx context.Context, userID int64) error {
 		WHERE id = $1
 	`
 	_, err := r.db.ExecContext(ctx, query, userID)
+	return err
+}
+
+func (r *UserRepo) AssignUserResetToken(ctx context.Context, token string, iat int64, userID int64) error {
+	query := `
+		UPDATE users
+		SET password_reset_token = $1,
+		    password_reset_issuedat = $2
+		WHERE id = $3
+	`
+	_, err := r.db.ExecContext(ctx, query, token, iat, userID)
 	return err
 }
 
@@ -114,13 +122,14 @@ func (r *UserRepo) GetUserByResetToken(ctx context.Context, tokenHash string) (*
 	return &user, nil
 }
 
-func (r *UserRepo) InvalidateResetToken(ctx context.Context, userID int64) error {
+func (r *UserRepo) ChangeUserPassword(ctx context.Context, newPasswordHash string, userID int64) error {
 	query := `
 		UPDATE users
-		SET password_reset_token = '',
+		SET password_hash = $1,
+			password_reset_token = '',
 		    password_reset_issuedat = 0
-		WHERE id = $1
+		WHERE id = $2
 	`
-	_, err := r.db.ExecContext(ctx, query, userID)
+	_, err := r.db.ExecContext(ctx, query, newPasswordHash, userID)
 	return err
 }

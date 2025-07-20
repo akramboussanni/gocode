@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
@@ -13,10 +12,8 @@ import (
 )
 
 func (ar *AuthRouter) HandleRegister(w http.ResponseWriter, r *http.Request) {
-	var cred Credentials
-
-	if err := json.NewDecoder(r.Body).Decode(&cred); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+	cred, err := api.DecodeJSON[Credentials](w, r)
+	if err != nil {
 		return
 	}
 
@@ -32,7 +29,7 @@ func (ar *AuthRouter) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	duplicate, err := ar.UserRepo.DuplicateName(r.Context(), cred.Username)
 	if err != nil {
-		http.Error(w, "server error", http.StatusInternalServerError)
+		api.WriteInternalError(w)
 		return
 	}
 
@@ -43,7 +40,7 @@ func (ar *AuthRouter) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := utils.HashPassword(cred.Password)
 	if err != nil {
-		http.Error(w, "server error", http.StatusInternalServerError)
+		api.WriteInternalError(w)
 		return
 	}
 
@@ -51,21 +48,20 @@ func (ar *AuthRouter) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	if err := ar.UserRepo.CreateUser(r.Context(), user); err != nil {
 		log.Println(err)
-		http.Error(w, "server error", http.StatusInternalServerError)
+		api.WriteInternalError(w)
 		return
 	}
 
-	_, hash, err = GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation")
+	token, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation")
 	if err != nil {
-		http.Error(w, "server error", http.StatusInternalServerError)
-		return
-	}
-	user.EmailConfirmToken = hash
-	user.EmailConfirmIssuedAt = time.Now().UTC().Unix()
-	if err := ar.UserRepo.UpdateUser(r.Context(), user); err != nil {
-		http.Error(w, "server error", http.StatusInternalServerError)
+		api.WriteInternalError(w)
 		return
 	}
 
-	api.WriteJSON(w, 200, map[string]string{"message": "user created"})
+	if err := ar.UserRepo.AssignUserConfirmToken(r.Context(), token.Hash, time.Now().UTC().Unix(), user.ID); err != nil {
+		api.WriteInternalError(w)
+		return
+	}
+
+	api.WriteMessage(w, 200, "message", "user created")
 }

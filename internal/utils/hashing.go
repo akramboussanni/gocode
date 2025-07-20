@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 
 	"github.com/akramboussanni/gocode/config"
+	"github.com/akramboussanni/gocode/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -38,12 +39,7 @@ func GenerateRandomBytes(bytes uint8) ([]byte, error) {
 	return b, nil
 }
 
-type Token struct {
-	Raw  string
-	Hash string
-}
-
-func GetRandomToken(bytes uint8) (*Token, error) {
+func GetRandomToken(bytes uint8) (*model.Token, error) {
 	b, err := GenerateRandomBytes(bytes)
 	if err != nil {
 		return nil, err
@@ -52,7 +48,7 @@ func GetRandomToken(bytes uint8) (*Token, error) {
 	enc := base64.URLEncoding.EncodeToString(b)
 	hashed := sha256.Sum256(b)
 
-	return &Token{
+	return &model.Token{
 		Raw:  enc,
 		Hash: base64.URLEncoding.EncodeToString(hashed[:]),
 	}, err

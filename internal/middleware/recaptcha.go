@@ -1,44 +1,68 @@
 package middleware
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/akramboussanni/gocode/config"
+	"github.com/akramboussanni/gocode/internal/api"
 	"github.com/akramboussanni/gocode/internal/model"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/go-querystring/query"
 )
 
-func ValidateRecaptcha(w http.ResponseWriter, r *http.Request) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token := r.Header.Get("X-Recaptcha-Token")
-			if token == "" {
-				http.Error(w, "invalid request", http.StatusBadRequest)
-				return
-			}
+var RecaptchaThreshold float32 = 0.5
 
-			req := model.RecaptchaVerificationPayload{
-				Secret:   config.RecaptchaSecret,
-				Response: token,
-				RemoteIP: r.RemoteAddr,
-			}
-
-			values, err := query.Values(req)
-			if err != nil {
-				http.Error(w, "server error", http.StatusInternalServerError)
-				return
-			}
-
-			resp, err := http.PostForm("https://www.google.com/recaptcha/api/siteverify", values)
-
-			if err != nil {
-				http.Error(w, "Recaptcha verification failed", http.StatusInternalServerError)
-				return
-			}
-
-			defer resp.Body.Close()
-		})
+func AddRecaptcha(r chi.Router) {
+	if config.RecaptchaSecret != "" {
+		r.Use(validateRecaptcha)
 	}
 }
 
-func validateRecaptcha()
+func validateRecaptcha(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("X-Recaptcha-Token")
+		if token == "" {
+			http.Error(w, "invalid request", http.StatusBadRequest)
+			return
+		}
+
+		/*remoteIp := r.RemoteAddr
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err == nil {
+			remoteIp = host
+		}*/
+
+		req := model.RecaptchaVerificationPayload{
+			Secret:   config.RecaptchaSecret,
+			Response: token,
+			//RemoteIP: remoteIp,
+		}
+
+		values, err := query.Values(req)
+		if err != nil {
+			api.WriteInternalError(w)
+			return
+		}
+
+		resp, err := http.PostForm("https://www.google.com/recaptcha/api/siteverify", values)
+		if err != nil {
+			api.WriteInternalError(w)
+			return
+		}
+		defer resp.Body.Close()
+
+		var recaptchaResp model.RecaptchaVerificationResponse
+		if err := json.NewDecoder(resp.Body).Decode(&recaptchaResp); err != nil {
+			api.WriteInternalError(w)
+			return
+		}
+
+		if recaptchaResp.Score < RecaptchaThreshold || !recaptchaResp.Success {
+			http.Error(w, "recaptcha fail", http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
