@@ -1,5 +1,5 @@
 // this file contains translations
-package handler
+package authhandler
 
 import (
 	"crypto/sha256"
@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api"
 )
 
@@ -48,7 +49,7 @@ func (ar *AuthRouter) HandleConfirmEmail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	expiry := user.EmailConfirmIssuedAt + 3600*24 //24h expiry
+	expiry := user.EmailConfirmIssuedAt + config.EmailConfirmExpiry //24h expiry
 	if expiry < time.Now().UTC().Unix() {
 		http.Error(w, "expired token, please request a new one", http.StatusUnauthorized)
 		return

@@ -4,15 +4,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/akramboussanni/gocode/internal/api/routes/auth/handler"
+	"github.com/akramboussanni/gocode/internal/api/routes/auth/authhandler"
 	"github.com/akramboussanni/gocode/internal/middleware"
 	"github.com/akramboussanni/gocode/internal/repo"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/httprate"
 )
 
-func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo) http.Handler {
-	ar := &handler.AuthRouter{UserRepo: userRepo, TokenRepo: tokenRepo}
+func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo, lockoutRepo *repo.LockoutRepo) http.Handler {
+	ar := &authhandler.AuthRouter{UserRepo: userRepo, TokenRepo: tokenRepo, LockoutRepo: lockoutRepo}
 	r := chi.NewRouter()
 
 	r.Use(middleware.MaxBytesMiddleware(1 << 20))
@@ -38,8 +38,6 @@ func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo) http.Hand
 		middleware.AddAuth(r, ar.TokenRepo)
 		r.Use(httprate.LimitByIP(30, 1*time.Minute))
 		r.Get("/me", ar.HandleProfile)
-		r.Post("/change-password", ar.HandleChangePassword)
-
 	})
 
 	//5/min+auth+recaptcha

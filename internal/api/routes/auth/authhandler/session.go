@@ -1,12 +1,14 @@
-package handler
+package authhandler
 
 import (
 	"log"
 	"math"
 	"net/http"
+	"time"
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api"
+	"github.com/akramboussanni/gocode/internal/jwt"
 	"github.com/akramboussanni/gocode/internal/middleware"
 	"github.com/akramboussanni/gocode/internal/model"
 	"github.com/akramboussanni/gocode/internal/utils"
@@ -38,10 +40,55 @@ func (ar *AuthRouter) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !utils.ComparePassword(user.PasswordHash, cred.Password) || !user.EmailConfirmed {
+	lockedOut, err := ar.LockoutRepo.IsLockedOut(r.Context(), user.ID, r.RemoteAddr)
+	if err != nil {
+		api.WriteInternalError(w)
+		return
+	}
+
+	if lockedOut {
+		api.WriteMessage(w, 423, "error", "account locked")
+		return
+	}
+
+	if !utils.ComparePassword(user.PasswordHash, cred.Password) {
+		now := time.Now().UTC().Unix()
+		err := ar.LockoutRepo.AddFailedLogin(r.Context(), model.FailedLogin{UserID: user.ID, IPAddress: r.RemoteAddr, AttemptedAt: now})
+
+		if err != nil {
+			api.WriteInternalError(w)
+			return
+		}
+
+		count, err := ar.LockoutRepo.CountRecentFailures(r.Context(), user.ID, r.RemoteAddr)
+		if err != nil {
+			api.WriteInternalError(w)
+			return
+		}
+
+		if count > config.LockoutCount {
+			err := ar.LockoutRepo.AddLockout(r.Context(), model.Lockout{
+				UserID:      user.ID,
+				IPAddress:   r.RemoteAddr,
+				LockedUntil: now + config.LockoutDuration,
+				Reason:      "failed logins",
+				CreatedAt:   now,
+			})
+
+			if err != nil {
+				api.WriteInternalError(w)
+				return
+			}
+
+			api.WriteMessage(w, 423, "error", "account locked")
+			return
+		}
+
 		api.WriteInvalidCredentials(w)
 		return
 	}
+
+	//readd  email confirm check
 
 	api.WriteJSON(w, 200, GenerateLogin(user))
 }
@@ -66,7 +113,7 @@ func (ar *AuthRouter) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	claims := middleware.GetClaims(w, r, req.Token, config.JwtSecret, ar.TokenRepo)
-	if claims == nil {
+	if claims == nil || claims.Type != jwt.Refresh {
 		return
 	}
 

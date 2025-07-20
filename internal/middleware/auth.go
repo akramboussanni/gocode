@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/akramboussanni/gocode/config"
-	"github.com/akramboussanni/gocode/internal/ctxutil"
+	"github.com/akramboussanni/gocode/internal/api"
 	"github.com/akramboussanni/gocode/internal/jwt"
 	"github.com/akramboussanni/gocode/internal/repo"
+	"github.com/akramboussanni/gocode/internal/utils"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -27,11 +28,11 @@ func JWTAuth(secret []byte, tr *repo.TokenRepo, expectedType jwt.TokenType) func
 			}
 
 			if claims.Type != expectedType {
-				http.Error(w, "invalid credentials", http.StatusUnauthorized)
+				api.WriteInvalidCredentials(w)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), ctxutil.UserIDKey, claims.UserID)
+			ctx := context.WithValue(r.Context(), utils.UserIDKey, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -40,7 +41,7 @@ func JWTAuth(secret []byte, tr *repo.TokenRepo, expectedType jwt.TokenType) func
 func GetClaimsFromHeader(w http.ResponseWriter, r *http.Request, secret []byte, tr *repo.TokenRepo) *jwt.Claims {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-		http.Error(w, "missing or invalid authorization header", http.StatusUnauthorized)
+		api.WriteInvalidCredentials(w)
 		return nil
 	}
 
@@ -51,7 +52,7 @@ func GetClaimsFromHeader(w http.ResponseWriter, r *http.Request, secret []byte, 
 func GetClaims(w http.ResponseWriter, r *http.Request, token string, secret []byte, tr *repo.TokenRepo) *jwt.Claims {
 	claims, err := jwt.ValidateToken(token, config.JwtSecret, tr)
 	if err != nil {
-		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		api.WriteInvalidCredentials(w)
 		return nil
 	}
 

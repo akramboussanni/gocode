@@ -1,15 +1,15 @@
-package handler
+package authhandler
 
 import (
+	"math"
 	"net/http"
-	"time"
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api"
-	"github.com/akramboussanni/gocode/internal/ctxutil"
 	"github.com/akramboussanni/gocode/internal/jwt"
 	"github.com/akramboussanni/gocode/internal/middleware"
 	"github.com/akramboussanni/gocode/internal/model"
+	"github.com/akramboussanni/gocode/internal/utils"
 )
 
 // @Summary Get current user profile
@@ -25,7 +25,7 @@ import (
 // @Failure 500 {object} api.ErrorResponse "Internal server error"
 // @Router /api/auth/me [get]
 func (ar *AuthRouter) HandleProfile(w http.ResponseWriter, r *http.Request) {
-	user := ctxutil.FetchUserWithContext(r.Context(), w, ar.UserRepo.GetUserByIdSafe)
+	user := utils.FetchUserWithContext(r.Context(), w, ar.UserRepo.GetUserByIdSafe)
 	if user == nil {
 		return
 	}
@@ -51,12 +51,10 @@ func (ar *AuthRouter) HandleLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expiration := time.Unix(claims.Expiration, 0)
-
 	err := ar.TokenRepo.RevokeToken(r.Context(), model.JwtBlacklist{
 		TokenID:   claims.TokenID,
 		UserID:    claims.UserID,
-		ExpiresAt: expiration.UTC().Unix(),
+		ExpiresAt: math.MaxInt64,
 	})
 
 	if err != nil {

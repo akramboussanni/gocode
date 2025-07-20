@@ -15,7 +15,7 @@ type UserRepo struct {
 
 func NewUserRepo(db *sqlx.DB) *UserRepo {
 	repo := &UserRepo{db: db}
-	repo.Columns = ExtractColumns((*model.User)(nil))
+	repo.Columns = ExtractColumns[model.User]()
 	return repo
 }
 

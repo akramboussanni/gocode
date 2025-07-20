@@ -1,5 +1,5 @@
 // this file contains translations
-package handler
+package authhandler
 
 import (
 	"crypto/sha256"
@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api"
-	"github.com/akramboussanni/gocode/internal/ctxutil"
 	"github.com/akramboussanni/gocode/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -46,7 +46,7 @@ func (ar *AuthRouter) HandleForgotPassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	expiry := user.PasswordResetIssuedAt + 3600 //1h expiry
+	expiry := user.PasswordResetIssuedAt + config.ForgotPasswordExpiry
 	if expiry < time.Now().UTC().Unix() {
 		http.Error(w, "expired token, please request a new one", http.StatusUnauthorized)
 		return
@@ -130,7 +130,7 @@ func (ar *AuthRouter) HandleChangePassword(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	user := ctxutil.FetchUserWithContext(r.Context(), w, ar.UserRepo.GetUserById)
+	user := utils.FetchUserWithContext(r.Context(), w, ar.UserRepo.GetUserById)
 	if user == nil {
 		return
 	}

@@ -8,8 +8,9 @@ import (
 )
 
 type Repos struct {
-	User  *UserRepo
-	Token *TokenRepo
+	User    *UserRepo
+	Token   *TokenRepo
+	Lockout *LockoutRepo
 }
 
 type Columns struct {
@@ -23,17 +24,21 @@ type Columns struct {
 
 func NewRepos(db *sqlx.DB) *Repos {
 	return &Repos{
-		User:  NewUserRepo(db),
-		Token: NewTokenRepo(db),
+		User:    NewUserRepo(db),
+		Token:   NewTokenRepo(db),
+		Lockout: NewLockoutRepo(db),
 	}
 }
 
-func ExtractColumns[T any](model T) Columns {
+func ExtractColumns[T any]() Columns {
 	var allCols, safeCols []string
-	t := reflect.TypeOf(model)
+
+	t := reflect.TypeOf((*T)(nil)).Elem()
+
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
+
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		dbTag, ok := field.Tag.Lookup("db")

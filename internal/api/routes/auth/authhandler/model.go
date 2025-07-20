@@ -1,4 +1,4 @@
-package handler
+package authhandler
 
 // @Description User registration request with email confirmation
 type RegisterRequest struct {
