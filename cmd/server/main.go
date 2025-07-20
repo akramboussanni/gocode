@@ -1,14 +1,7 @@
-// @title GoCode API
+// @title gocode
 // @version 1.0
-// @description A quick-setup, fast, Go-chi backend API with authentication and email confirmation
+// @description a quick-setup, fast, Go-chi backend with jwt auth
 // @termsOfService http://swagger.io/terms/
-
-// @contact.name API Support
-// @contact.url http://www.swagger.io/support
-// @contact.email support@swagger.io
-
-// @license.name Apache 2.0
-// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
 // @host localhost:9520
 // @BasePath /
