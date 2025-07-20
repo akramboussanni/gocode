@@ -9,6 +9,7 @@ import (
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api"
+	"github.com/akramboussanni/gocode/internal/utils"
 )
 
 // @Summary Confirm email address
@@ -105,7 +106,8 @@ func (ar *AuthRouter) HandleResendConfirmation(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	token, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation", req.Url)
+	expiryStr := utils.ExpiryToString(24 * 3600)
+	token, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation", req.Url, expiryStr)
 	if err != nil {
 		ar.Logger.Error("Failed to send confirmation email:", err)
 		api.WriteInternalError(w)

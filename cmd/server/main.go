@@ -39,8 +39,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api/routes"
@@ -65,6 +70,27 @@ func main() {
 	repos := repo.NewRepos(db.DB)
 	r := routes.SetupRouter(repos)
 
+	server := &http.Server{
+		Addr:    ":9520",
+		Handler: r,
+	}
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-quit
+		log.Println("Shutting down server...")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			log.Fatalf("Server forced to shutdown: %v", err)
+		}
+		log.Println("Server exited gracefully")
+	}()
+
 	log.Println("server will run @ localhost:9520")
-	http.ListenAndServe(":9520", r)
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("error when starting server: %v", err)
+	}
 }

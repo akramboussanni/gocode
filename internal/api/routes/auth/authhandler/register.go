@@ -70,7 +70,8 @@ func (ar *AuthRouter) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation", cred.Url)
+	expiryStr := utils.ExpiryToString(24 * 3600)
+	token, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation", cred.Url, expiryStr)
 	if err != nil {
 		ar.Logger.Error("Failed to send confirmation email:", err)
 		api.WriteInternalError(w)

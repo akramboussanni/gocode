@@ -227,7 +227,7 @@
             
             <div class="security-note">
                 <h4>🔒 Security Notice</h4>
-                <p>This confirmation link will expire in 24 hours. If you didn't create an account with us, please ignore this email. Never share this token with anyone.</p>
+                <p>{{if .Expiry}}This link expires in {{.Expiry}}. If you didn't create an account with us, please ignore this email. Never share this token with anyone.{{else}}This confirmation link will expire in 24 hours. If you didn't create an account with us, please ignore this email. Never share this token with anyone.{{end}}</p>
             </div>
         </div>
         
@@ -235,7 +235,7 @@
             <p>If you have any questions, please contact our support team.</p>
             <p>Thank you for choosing our platform!</p>
             <div class="expiry">
-                ⏰ This confirmation link expires in 24 hours
+                {{if .Expiry}}⏰ This link expires in {{.Expiry}}{{else}}⏰ This confirmation link expires in 24 hours{{end}}
             </div>
         </div>
     </div>

@@ -130,7 +130,8 @@ func (ar *AuthRouter) HandleSendForgotPassword(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	token, err := GenerateTokenAndSendEmail(user.Email, "forgotpassword", "Password reset", req.Url)
+	expiryStr := utils.ExpiryToString(config.ForgotPasswordExpiry)
+	token, err := GenerateTokenAndSendEmail(user.Email, "forgotpassword", "Password reset", req.Url, expiryStr)
 	if err != nil {
 		ar.Logger.Error("Failed to send password reset email:", err)
 		api.WriteInternalError(w)

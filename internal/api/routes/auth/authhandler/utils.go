@@ -7,7 +7,8 @@ import (
 	"github.com/akramboussanni/gocode/internal/utils"
 )
 
-func GenerateTokenAndSendEmail(email, templateName, subject, url string) (*model.Token, error) {
+// Accepts an optional expiry string and passes it to the email template data as 'Expiry'.
+func GenerateTokenAndSendEmail(email, templateName, subject, url string, expiry ...string) (*model.Token, error) {
 	token, err := utils.GetRandomToken(16)
 	if err != nil {
 		return nil, err
@@ -18,7 +19,12 @@ func GenerateTokenAndSendEmail(email, templateName, subject, url string) (*model
 		mailer.MakeHeader("To", email),
 	}
 
-	err = mailer.Send(templateName, headers, map[string]any{"Token": token.Raw, "Url": url})
+	data := map[string]any{"Token": token.Raw, "Url": url}
+	if len(expiry) > 0 {
+		data["Expiry"] = expiry[0]
+	}
+
+	err = mailer.Send(templateName, headers, data)
 	if err != nil {
 		return nil, err
 	}
