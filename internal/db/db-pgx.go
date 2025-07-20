@@ -4,13 +4,19 @@
 package db
 
 import (
+	"embed"
+	"io/fs"
 	"log"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 )
+
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
 var DB *sqlx.DB
 
@@ -27,16 +33,23 @@ func Init(dsn string) {
 	}
 }
 
-func RunMigrations(migrationsPath string) {
+func RunMigrations() {
 	driver, err := postgres.WithInstance(DB.DB, &postgres.Config{})
 	if err != nil {
 		log.Fatalf("failed to create postgres driver: %v", err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://"+migrationsPath,
-		"postgres", driver,
-	)
+	migrationsSub, err := fs.Sub(migrationsFS, "migrations")
+	if err != nil {
+		log.Fatalf("failed to get migrations subdir: %v", err)
+	}
+
+	d, err := iofs.New(migrationsSub, ".")
+	if err != nil {
+		log.Fatalf("failed to create iofs driver: %v", err)
+	}
+
+	m, err := migrate.NewWithInstance("iofs", d, "postgres", driver)
 	if err != nil {
 		log.Fatalf("failed to create migrate instance: %v", err)
 	}

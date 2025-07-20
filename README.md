@@ -43,7 +43,7 @@ RECAPTCHA_V3_SECRET=obtain from google website
 you can build the repo with postgres (highly recommended) using `go build cmd/server/main.go`. this will produce a `main` executable file (`main.exe` on windows) that you can put on the server
 
 ### add migrations
-your db will not be migrated. you need to transfer the `migrations` folder onto your server in the working dir of the `main` executable file
+Migrations are now embedded in the binary; you do not need to copy the migrations folder to the server.
 
 ### setup env vars
 you can use `.env` file or normal env vars for the server. the available env vars are available above.
@@ -60,5 +60,7 @@ see [TEMPLATES.md](internal/mailer/templates/TEMPLATES.md) for more details
 
 if you are doing so, the app provides an env var to trust or not these headers: `TRUST_PROXY_IP_HEADERS`. if set to `false`, ratelimits, logging, etc. will use the `RemoteAddr` supplied instead. if set to `true`, it will refer to those headers.
 
+**warning:** if you do not use a reverse proxy, the app does not currently serve over TLS, which will be done at a later date.
 
-
+## notes
+server can be ran as serverless using the `github.com/apex/gateway` library (1-line switch). i will integrate this into the app at a later date. it will not support filesystem email templates however if ran this way.

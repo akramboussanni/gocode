@@ -63,7 +63,7 @@ func main() {
 	}
 
 	db.Init(config.DbConnectionString)
-	db.RunMigrations("./migrations")
+	db.RunMigrations()
 
 	mailer.Init(config.MailerSetting)
 
