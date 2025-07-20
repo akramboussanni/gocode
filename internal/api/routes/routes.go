@@ -5,6 +5,7 @@ import (
 
 	"github.com/akramboussanni/gocode/internal/api"
 	"github.com/akramboussanni/gocode/internal/api/routes/auth"
+	"github.com/akramboussanni/gocode/internal/log"
 	"github.com/akramboussanni/gocode/internal/repo"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -22,7 +23,10 @@ func SetupRouter(repos *repo.Repos) http.Handler {
 
 	api.AddSwaggerRoutes(r)
 
-	r.Mount("/api/auth", auth.NewAuthRouter(repos.User, repos.Token, repos.Lockout))
+	// Select logger implementation here
+	logger := log.NewStdLogger()
+
+	r.Mount("/api/auth", auth.NewAuthRouter(repos.User, repos.Token, repos.Lockout, logger))
 
 	return r
 }

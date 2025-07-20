@@ -29,14 +29,14 @@ func (r *UserRepo) CreateUser(ctx context.Context, user *model.User) error {
 	return err
 }
 
-func (r *UserRepo) GetUserById(ctx context.Context, id int64) (*model.User, error) {
+func (r *UserRepo) GetUserByID(ctx context.Context, id int64) (*model.User, error) {
 	var user model.User
 	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", r.AllRaw)
 	err := r.db.GetContext(ctx, &user, query, id)
 	return &user, err
 }
 
-func (r *UserRepo) GetUserByIdSafe(ctx context.Context, id int64) (*model.User, error) {
+func (r *UserRepo) GetUserByIDSafe(ctx context.Context, id int64) (*model.User, error) {
 	var user model.User
 	query := fmt.Sprintf("SELECT %s FROM users WHERE id = $1", r.SafeRaw)
 	err := r.db.GetContext(ctx, &user, query, id)
@@ -134,11 +134,11 @@ func (r *UserRepo) ChangeUserPassword(ctx context.Context, newPasswordHash strin
 	return err
 }
 
-func (r *UserRepo) IncrementJwtSessionId(ctx context.Context, userID int64) error {
+func (r *UserRepo) IncrementJwtSessionID(ctx context.Context, userID int64) error {
 	query := `
 		UPDATE users
 		SET jwt_session_id = jwt_session_id + 1
-		WHERE id = $2
+		WHERE id = $1
 	`
 	_, err := r.db.ExecContext(ctx, query, userID)
 	return err

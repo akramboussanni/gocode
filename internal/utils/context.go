@@ -10,7 +10,7 @@ type contextKey string
 
 const UserKey contextKey = "user"
 
-func UserFromContext(ctx context.Context) (model.User, bool) {
-	user, ok := ctx.Value(UserKey).(model.User)
+func UserFromContext(ctx context.Context) (*model.User, bool) {
+	user, ok := ctx.Value(UserKey).(*model.User)
 	return user, ok
 }

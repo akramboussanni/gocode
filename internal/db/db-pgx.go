@@ -45,5 +45,5 @@ func RunMigrations(migrationsPath string) {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
 
-	log.Println("Postgres migrations applied successfully")
+	log.Println("postgres migrations applied successfully")
 }

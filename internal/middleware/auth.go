@@ -32,7 +32,7 @@ func JWTAuth(secret []byte, ur *repo.UserRepo, tr *repo.TokenRepo, expectedType 
 				return
 			}
 
-			user, err := ur.GetUserById(r.Context(), claims.UserID)
+			user, err := ur.GetUserByID(r.Context(), claims.UserID)
 			if err != nil {
 				api.WriteInternalError(w)
 				return

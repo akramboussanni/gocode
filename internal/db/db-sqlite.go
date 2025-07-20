@@ -46,5 +46,5 @@ func RunMigrations(migrationsPath string) {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
 
-	log.Println("SQLite migrations applied successfully")
+	log.Println("sqlite migrations applied successfully")
 }

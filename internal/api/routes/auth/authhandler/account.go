@@ -20,12 +20,15 @@ import (
 // @Failure 500 {object} api.ErrorResponse "Internal server error"
 // @Router /api/auth/me [get]
 func (ar *AuthRouter) HandleProfile(w http.ResponseWriter, r *http.Request) {
+	ar.Logger.Info("HandleProfile called")
 	user, ok := utils.UserFromContext(r.Context())
 	if !ok {
+		ar.Logger.Error("Failed to get user from context")
 		api.WriteInternalError(w)
 		return
 	}
 
-	utils.StripUnsafeFields(&user)
+	utils.StripUnsafeFields(user)
+	ar.Logger.Info("Profile retrieved", "userID:", user.ID)
 	api.WriteJSON(w, 200, user)
 }

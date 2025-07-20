@@ -30,7 +30,7 @@ func (r *LockoutRepo) IsLockedOut(ctx context.Context, userID int64, ipAddress s
 	err := r.db.GetContext(ctx, &exists, `
 		SELECT EXISTS(
 			SELECT 1 FROM lockouts 
-			WHERE user_id = $1 AND ip_address = $2 AND locked_until > $3
+			WHERE user_id = $1 AND ip_address = $2 AND locked_until > $3 AND active = TRUE
 		)
 	`, userID, ipAddress, now)
 	return exists, err
@@ -44,6 +44,35 @@ func (r *LockoutRepo) AddLockout(ctx context.Context, lockout model.Lockout) err
 	)
 	_, err := r.db.NamedExecContext(ctx, query, lockout)
 	return err
+}
+
+func (r *LockoutRepo) UnlockAccount(ctx context.Context, userID int64, ipAddress string) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, `
+		UPDATE failed_logins
+		SET active = FALSE
+		WHERE user_id = $1 AND ip_address = $2;
+	`, userID, ipAddress)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx, `
+		UPDATE lockouts
+		SET active = FALSE
+		WHERE user_id = $1 AND ip_address = $2;
+	`, userID, ipAddress)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (r *LockoutRepo) AddFailedLogin(ctx context.Context, failedLogin model.FailedLogin) error {
@@ -63,7 +92,7 @@ func (r *LockoutRepo) CountRecentFailures(ctx context.Context, userID int64, ipA
 	var count int
 	err := r.db.GetContext(ctx, &count, `
 		SELECT COUNT(*) FROM failed_logins
-		WHERE user_id = $1 AND ip_address = $2 AND attempted_at > $3
+		WHERE user_id = $1 AND ip_address = $2 AND attempted_at > $3 AND active = TRUE
 	`, userID, ipAddress, ago)
 	return count, err
 }

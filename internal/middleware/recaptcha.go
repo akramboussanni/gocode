@@ -7,11 +7,10 @@ import (
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api"
 	"github.com/akramboussanni/gocode/internal/model"
+	"github.com/akramboussanni/gocode/internal/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/go-querystring/query"
 )
-
-var RecaptchaThreshold float32 = 0.5
 
 func AddRecaptcha(r chi.Router) {
 	if config.RecaptchaSecret != "" {
@@ -22,21 +21,17 @@ func AddRecaptcha(r chi.Router) {
 func validateRecaptcha(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("X-Recaptcha-Token")
+		ip := utils.GetClientIP(r)
+
 		if token == "" {
 			http.Error(w, "invalid request", http.StatusBadRequest)
 			return
 		}
 
-		/*remoteIp := r.RemoteAddr
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err == nil {
-			remoteIp = host
-		}*/
-
 		req := model.RecaptchaVerificationPayload{
 			Secret:   config.RecaptchaSecret,
 			Response: token,
-			//RemoteIP: remoteIp,
+			RemoteIP: ip,
 		}
 
 		values, err := query.Values(req)
@@ -58,7 +53,7 @@ func validateRecaptcha(next http.Handler) http.Handler {
 			return
 		}
 
-		if recaptchaResp.Score < RecaptchaThreshold || !recaptchaResp.Success {
+		if recaptchaResp.Score < config.RecaptchaThreshold || !recaptchaResp.Success {
 			http.Error(w, "recaptcha fail", http.StatusForbidden)
 			return
 		}

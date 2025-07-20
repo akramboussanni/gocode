@@ -26,6 +26,7 @@ SMTP_SENDER=example@contoso.com
 SMTP_PASSWORD=supersecret
 
 optional:
+TRUST_PROXY_IP_HEADERS=true|false  # If true, trust X-Forwarded-For and X-Real-IP headers (only set true if behind a trusted reverse proxy)
 RECAPTCHA_V3_ENABLED=true|false
 RECAPTCHA_V3_SECRET=obtain from google website
 ```
@@ -44,4 +45,11 @@ you can use `.env` file or normal env vars for the server. the available env var
 by default, the mailer (smtp) will use embedded templates in `mailer/templates/*.html`. at runtime, if a templates/ folder is found, with a matching template name, it will replace the embedded template (only on first load, not any time during app lifetime)
 
 ## warnings
-this is for my personal use/reference, the repo doesnt have caching, other features that may be necessary for a prod server.
+**warning:** this is for my personal use/reference, the repo doesnt have caching, other features that may be necessary for a prod server. it is also not battle-tested, but i did test it myself.
+
+**warning:** if you use a reverse proxy, it **should** provide `X-Forwarded-For` or `X-Real-IP` headers to determine the client IP address (for rate limiting, logging, or security). **iis' rewrite module does NOT by default.**
+
+if you are doing so, the app provides an env var to trust or not these headers: `TRUST_PROXY_IP_HEADERS`. if set to `false`, ratelimits, logging, etc. will use the `RemoteAddr` supplied instead. if set to `true`, it will refer to those headers.
+
+
+

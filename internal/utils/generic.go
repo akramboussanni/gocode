@@ -1,6 +1,8 @@
 package utils
 
-import "reflect"
+import (
+	"reflect"
+)
 
 func IfNil[T any](val *T, defaultVal T) *T {
 	if val == nil {

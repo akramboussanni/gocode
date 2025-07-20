@@ -14,6 +14,7 @@ var JwtSecret []byte
 var MailerSetting mailer.MailerSetting
 var RecaptchaSecret string
 var DbConnectionString string
+var TrustIpHeaders bool
 
 func Init() {
 	godotenv.Load()
@@ -48,5 +49,10 @@ func Init() {
 	recaptchaEnabled, err := strconv.ParseBool(os.Getenv("RECAPTCHA_V3_ENABLED"))
 	if err == nil && recaptchaEnabled {
 		RecaptchaSecret = os.Getenv("RECAPTCHA_V3_SECRET")
+	}
+
+	TrustIpHeaders, err = strconv.ParseBool(os.Getenv("TRUST_PROXY_IP_HEADERS"))
+	if err != nil {
+		TrustIpHeaders = false
 	}
 }

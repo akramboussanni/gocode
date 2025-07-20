@@ -1,2 +1,2 @@
 ALTER TABLE users
-ADD COLUMN jwt_version INTEGER;
+ADD COLUMN jwt_session_id INTEGER;
