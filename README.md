@@ -42,9 +42,6 @@ RECAPTCHA_V3_SECRET=obtain from google website
 ### build the repo
 you can build the repo with postgres (highly recommended) using `go build cmd/server/main.go`. this will produce a `main` executable file (`main.exe` on windows) that you can put on the server
 
-### add migrations
-Migrations are now embedded in the binary; you do not need to copy the migrations folder to the server.
-
 ### setup env vars
 you can use `.env` file or normal env vars for the server. the available env vars are available above.
 
