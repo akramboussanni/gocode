@@ -1,9 +1,6 @@
 # gocode
 a quick-setup, fast, Go-chi backend example repository
 
-## todo
-account lockout
-
 ## developing
 when testing in dev mode, it is heavily recommended to apply debug tan (done by adding `-tags=debug` in your command, e.g. `go run -tags=debug cmd/server/main.go`). the benefits of doing so are:
 - sqlite instead of postgres

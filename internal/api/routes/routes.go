@@ -22,7 +22,7 @@ func SetupRouter(repos *repo.Repos) http.Handler {
 
 	api.AddSwaggerRoutes(r)
 
-	r.Mount("/api/auth", auth.NewAuthRouter(repos.User, repos.Token))
+	r.Mount("/api/auth", auth.NewAuthRouter(repos.User, repos.Token, repos.Lockout))
 
 	return r
 }
