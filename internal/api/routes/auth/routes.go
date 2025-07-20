@@ -17,7 +17,7 @@ func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo) http.Hand
 
 	r.Use(middleware.MaxBytesMiddleware(1 << 20))
 
-	//8/min
+	//8/min+recaptcha
 	r.Group(func(r chi.Router) {
 		r.Use(httprate.LimitByIP(8, 1*time.Minute))
 		middleware.AddRecaptcha(r)
@@ -25,36 +25,46 @@ func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo) http.Hand
 		r.Post("/logout", ar.HandleLogout)
 	})
 
-	//2/min
+	//2/min+recaptcha
 	r.Group(func(r chi.Router) {
 		r.Use(httprate.LimitByIP(2, 1*time.Minute))
 		middleware.AddRecaptcha(r)
 		r.Post("/register", ar.HandleRegister)
-
-	})
-
-	r.Group(func(r chi.Router) {
-		r.Use(httprate.LimitByIP(8, 1*time.Minute))
-		middleware.AddRecaptcha(r)
 		r.Post("/refresh", ar.HandleRefresh)
 	})
 
-	//30/min
+	//30/min+auth+recaptcha
+	r.Group(func(r chi.Router) {
+		middleware.AddAuth(r, ar.TokenRepo)
+		r.Use(httprate.LimitByIP(30, 1*time.Minute))
+		r.Get("/me", ar.HandleProfile)
+		r.Post("/change-password", ar.HandleChangePassword)
+
+	})
+
+	//5/min+auth+recaptcha
 	r.Group(func(r chi.Router) {
 		middleware.AddAuth(r, ar.TokenRepo)
 		r.Use(httprate.LimitByIP(30, 1*time.Minute))
 		r.Get("/me", ar.HandleProfile)
 	})
 
-	//5/min
+	//8/min+auth+recaptcha
+	r.Group(func(r chi.Router) {
+		middleware.AddRecaptcha(r)
+		middleware.AddAuth(r, ar.TokenRepo)
+		r.Use(httprate.LimitByIP(8, 1*time.Minute))
+		r.Post("/change-password", ar.HandleChangePassword)
+	})
+
+	//5/min+recaptcha
 	r.Group(func(r chi.Router) {
 		middleware.AddRecaptcha(r)
 		r.Use(httprate.LimitByIP(5, 1*time.Minute))
-		r.Post("/confirm-email", ar.HandleConfirmEmail)
-		r.Post("/resend-confirmation", ar.HandleResendConfirmation)
 		r.Post("/reset-password", ar.HandleForgotPassword)
 		r.Post("/forgot-password", ar.HandleSendForgotPassword)
-		r.Post("/change-password", ar.HandleChangePassword)
+		r.Post("/confirm-email", ar.HandleConfirmEmail)
+		r.Post("/resend-confirmation", ar.HandleResendConfirmation)
 	})
 
 	return r

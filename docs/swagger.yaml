@@ -158,6 +158,12 @@ paths:
       description: Change user password while authenticated. Requires current password
         verification and new password must meet security requirements.
       parameters:
+      - default: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Current password and new password
         in: body
         name: request
@@ -199,6 +205,11 @@ paths:
       description: Confirm user's email address using the confirmation token sent
         during registration. Token expires after 24 hours.
       parameters:
+      - description: reCAPTCHA verification token
+        in: header
+        name: X-Recaptcha-Token
+        required: true
+        type: string
       - description: Email confirmation token
         in: body
         name: request
@@ -238,6 +249,11 @@ paths:
       description: Send password reset email to user's email address. A reset token
         will be generated and sent via email with a 1-hour expiration.
       parameters:
+      - description: reCAPTCHA verification token
+        in: header
+        name: X-Recaptcha-Token
+        required: true
+        type: string
       - description: User email and reset URL
         in: body
         name: request
@@ -277,6 +293,11 @@ paths:
       description: Authenticate user with email and password, returning session and
         refresh JWT tokens. User must have confirmed their email address.
       parameters:
+      - description: reCAPTCHA verification token
+        in: header
+        name: X-Recaptcha-Token
+        required: true
+        type: string
       - description: User login credentials
         in: body
         name: request
@@ -315,6 +336,13 @@ paths:
       - application/json
       description: Logout the current user by revoking their JWT session token. The
         token will be added to the blacklist and cannot be used again.
+      parameters:
+      - default: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -345,6 +373,13 @@ paths:
       - application/json
       description: Retrieve the current authenticated user's profile information.
         Returns safe user data (excluding sensitive fields like password hash).
+      parameters:
+      - default: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        description: Bearer JWT token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -376,6 +411,11 @@ paths:
       description: Refresh user's JWT tokens using a valid refresh token. The old
         refresh token will be revoked and new session/refresh tokens will be issued.
       parameters:
+      - description: reCAPTCHA verification token
+        in: header
+        name: X-Recaptcha-Token
+        required: true
+        type: string
       - description: Refresh token
         in: body
         name: request
@@ -417,6 +457,11 @@ paths:
         will validate credentials, check for duplicates, hash the password, and send
         a confirmation email. Username cannot contain '@' symbol.
       parameters:
+      - description: reCAPTCHA verification token
+        in: header
+        name: X-Recaptcha-Token
+        required: true
+        type: string
       - description: User registration credentials including confirmation URL
         in: body
         name: request
@@ -452,6 +497,11 @@ paths:
       description: Resend email confirmation token to user's email address. Useful
         if the original confirmation email was not received or expired.
       parameters:
+      - description: reCAPTCHA verification token
+        in: header
+        name: X-Recaptcha-Token
+        required: true
+        type: string
       - description: User email and confirmation URL
         in: body
         name: request
@@ -491,6 +541,11 @@ paths:
       description: Reset user password using a reset token sent via email. Token expires
         after 1 hour. New password must meet security requirements.
       parameters:
+      - description: reCAPTCHA verification token
+        in: header
+        name: X-Recaptcha-Token
+        required: true
+        type: string
       - description: Reset token and new password
         in: body
         name: request
@@ -528,18 +583,28 @@ schemes:
 - https
 securityDefinitions:
   BearerAuth:
-    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
-      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
+    description: 'JWT Bearer token for authenticated endpoints. Format: "Bearer <token>".
+      Required for endpoints marked with @Security BearerAuth.'
     in: header
     name: Authorization
     type: apiKey
+  RecaptchaToken:
+    description: reCAPTCHA verification token for bot protection. Required for public
+      endpoints to prevent abuse. Obtain from reCAPTCHA widget.
+    in: header
+    name: X-Recaptcha-Token
+    type: apiKey
 swagger: "2.0"
 tags:
-- description: User registration, login, and token management endpoints
+- description: User registration, login, and token management endpoints. Most endpoints
+    require reCAPTCHA verification.
   name: Authentication
-- description: User profile and account management endpoints
+- description: User profile and account management endpoints. All endpoints require
+    JWT authentication.
   name: Account
-- description: Email confirmation and verification endpoints
+- description: Email confirmation and verification endpoints. All endpoints require
+    reCAPTCHA verification.
   name: Email Verification
-- description: Password reset, change, and recovery endpoints
+- description: Password reset, change, and recovery endpoints. Public endpoints require
+    reCAPTCHA, authenticated endpoints require JWT.
   name: Password Management

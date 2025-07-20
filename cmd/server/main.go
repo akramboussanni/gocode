@@ -17,19 +17,24 @@
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Type "Bearer" followed by a space and JWT token. Example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+// @description JWT Bearer token for authenticated endpoints. Format: "Bearer <token>". Required for endpoints marked with @Security BearerAuth.
+
+// @securityDefinitions.apikey RecaptchaToken
+// @in header
+// @name X-Recaptcha-Token
+// @description reCAPTCHA verification token for bot protection. Optional - only required if reCAPTCHA is configured in environment variables. Obtain from reCAPTCHA widget.
 
 // @tag.name Authentication
-// @tag.description User registration, login, and token management endpoints
+// @tag.description User registration, login, and token management endpoints. reCAPTCHA verification is optional if configured.
 
 // @tag.name Account
-// @tag.description User profile and account management endpoints
+// @tag.description User profile and account management endpoints. All endpoints require JWT authentication.
 
 // @tag.name Email Verification
-// @tag.description Email confirmation and verification endpoints
+// @tag.description Email confirmation and verification endpoints. reCAPTCHA verification is optional if configured.
 
 // @tag.name Password Management
-// @tag.description Password reset, change, and recovery endpoints
+// @tag.description Password reset, change, and recovery endpoints. Public endpoints have optional reCAPTCHA, authenticated endpoints require JWT.
 
 package main
 

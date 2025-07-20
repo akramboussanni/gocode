@@ -15,6 +15,7 @@ import (
 // @Tags Email Verification
 // @Accept json
 // @Produce json
+// @Param X-Recaptcha-Token header string false "reCAPTCHA verification token (optional if reCAPTCHA is not configured)"
 // @Param request body TokenRequest true "Email confirmation token"
 // @Success 200 {object} api.SuccessResponse "Email confirmed successfully - user can now login"
 // @Failure 400 {object} api.ErrorResponse "Invalid request format or missing token"
@@ -66,6 +67,7 @@ func (ar *AuthRouter) HandleConfirmEmail(w http.ResponseWriter, r *http.Request)
 // @Tags Email Verification
 // @Accept json
 // @Produce json
+// @Param X-Recaptcha-Token header string false "reCAPTCHA verification token (optional if reCAPTCHA is not configured)"
 // @Param request body EmailRequest true "User email and confirmation URL"
 // @Success 200 {object} api.SuccessResponse "Confirmation email sent successfully"
 // @Failure 400 {object} api.ErrorResponse "Invalid request format or missing email"

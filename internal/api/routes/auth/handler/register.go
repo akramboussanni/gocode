@@ -16,6 +16,7 @@ import (
 // @Tags Authentication
 // @Accept json
 // @Produce json
+// @Param X-Recaptcha-Token header string false "reCAPTCHA verification token (optional if reCAPTCHA is not configured)"
 // @Param request body RegisterRequest true "User registration credentials including confirmation URL"
 // @Success 200 {object} api.SuccessResponse "User account created successfully - confirmation email sent"
 // @Failure 400 {object} api.ErrorResponse "Invalid credentials, duplicate username, or validation errors"

@@ -18,6 +18,7 @@ import (
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param Authorization header string true "Bearer JWT token" default(Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...)
 // @Success 200 {object} model.User "User profile information (safe fields only)"
 // @Failure 401 {object} api.ErrorResponse "Unauthorized - invalid or missing JWT token"
 // @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (30 requests per minute)"
@@ -38,6 +39,7 @@ func (ar *AuthRouter) HandleProfile(w http.ResponseWriter, r *http.Request) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param Authorization header string true "Bearer JWT token" default(Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...)
 // @Success 200 {string} string "Logout successful - session token revoked"
 // @Failure 401 {object} api.ErrorResponse "Unauthorized - invalid or missing JWT token"
 // @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (8 requests per minute)"

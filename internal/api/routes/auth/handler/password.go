@@ -18,6 +18,7 @@ import (
 // @Tags Password Management
 // @Accept json
 // @Produce json
+// @Param X-Recaptcha-Token header string false "reCAPTCHA verification token (optional if reCAPTCHA is not configured)"
 // @Param request body PasswordResetRequest true "Reset token and new password"
 // @Success 200 {string} string "Password reset successful"
 // @Failure 400 {object} api.ErrorResponse "Invalid password format or requirements not met"
@@ -75,6 +76,7 @@ func (ar *AuthRouter) HandleForgotPassword(w http.ResponseWriter, r *http.Reques
 // @Tags Password Management
 // @Accept json
 // @Produce json
+// @Param X-Recaptcha-Token header string false "reCAPTCHA verification token (optional if reCAPTCHA is not configured)"
 // @Param request body EmailRequest true "User email and reset URL"
 // @Success 200 {object} api.SuccessResponse "Password reset email sent successfully"
 // @Failure 400 {object} api.ErrorResponse "Invalid request format or missing email"
@@ -114,6 +116,7 @@ func (ar *AuthRouter) HandleSendForgotPassword(w http.ResponseWriter, r *http.Re
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param Authorization header string true "Bearer JWT token" default(Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...)
 // @Param request body PasswordChangeRequest true "Current password and new password"
 // @Success 200 {string} string "Password changed successfully"
 // @Failure 400 {object} api.ErrorResponse "Invalid password format or requirements not met"

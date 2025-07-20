@@ -44,6 +44,14 @@ const docTemplate = `{
                 "summary": "Change password (authenticated)",
                 "parameters": [
                     {
+                        "type": "string",
+                        "default": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "description": "Bearer JWT token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "Current password and new password",
                         "name": "request",
                         "in": "body",
@@ -101,6 +109,13 @@ const docTemplate = `{
                 ],
                 "summary": "Confirm email address",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "reCAPTCHA verification token",
+                        "name": "X-Recaptcha-Token",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "Email confirmation token",
                         "name": "request",
@@ -160,6 +175,13 @@ const docTemplate = `{
                 "summary": "Request password reset email",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "reCAPTCHA verification token",
+                        "name": "X-Recaptcha-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "User email and reset URL",
                         "name": "request",
                         "in": "body",
@@ -217,6 +239,13 @@ const docTemplate = `{
                 ],
                 "summary": "Authenticate user and get JWT tokens",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "reCAPTCHA verification token",
+                        "name": "X-Recaptcha-Token",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "User login credentials",
                         "name": "request",
@@ -279,6 +308,16 @@ const docTemplate = `{
                     "Account"
                 ],
                 "summary": "Logout user and revoke session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "description": "Bearer JWT token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Logout successful - session token revoked",
@@ -325,6 +364,16 @@ const docTemplate = `{
                     "Account"
                 ],
                 "summary": "Get current user profile",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                        "description": "Bearer JWT token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "User profile information (safe fields only)",
@@ -367,6 +416,13 @@ const docTemplate = `{
                 ],
                 "summary": "Refresh JWT tokens",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "reCAPTCHA verification token",
+                        "name": "X-Recaptcha-Token",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "Refresh token",
                         "name": "request",
@@ -426,6 +482,13 @@ const docTemplate = `{
                 "summary": "Register new user account",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "reCAPTCHA verification token",
+                        "name": "X-Recaptcha-Token",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "User registration credentials including confirmation URL",
                         "name": "request",
                         "in": "body",
@@ -477,6 +540,13 @@ const docTemplate = `{
                 ],
                 "summary": "Resend email confirmation",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "reCAPTCHA verification token",
+                        "name": "X-Recaptcha-Token",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "User email and confirmation URL",
                         "name": "request",
@@ -535,6 +605,13 @@ const docTemplate = `{
                 ],
                 "summary": "Reset password with token",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "reCAPTCHA verification token",
+                        "name": "X-Recaptcha-Token",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "description": "Reset token and new password",
                         "name": "request",
@@ -766,27 +843,33 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "Type \"Bearer\" followed by a space and JWT token. Example: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"",
+            "description": "JWT Bearer token for authenticated endpoints. Format: \"Bearer \u003ctoken\u003e\". Required for endpoints marked with @Security BearerAuth.",
             "type": "apiKey",
             "name": "Authorization",
+            "in": "header"
+        },
+        "RecaptchaToken": {
+            "description": "reCAPTCHA verification token for bot protection. Required for public endpoints to prevent abuse. Obtain from reCAPTCHA widget.",
+            "type": "apiKey",
+            "name": "X-Recaptcha-Token",
             "in": "header"
         }
     },
     "tags": [
         {
-            "description": "User registration, login, and token management endpoints",
+            "description": "User registration, login, and token management endpoints. Most endpoints require reCAPTCHA verification.",
             "name": "Authentication"
         },
         {
-            "description": "User profile and account management endpoints",
+            "description": "User profile and account management endpoints. All endpoints require JWT authentication.",
             "name": "Account"
         },
         {
-            "description": "Email confirmation and verification endpoints",
+            "description": "Email confirmation and verification endpoints. All endpoints require reCAPTCHA verification.",
             "name": "Email Verification"
         },
         {
-            "description": "Password reset, change, and recovery endpoints",
+            "description": "Password reset, change, and recovery endpoints. Public endpoints require reCAPTCHA, authenticated endpoints require JWT.",
             "name": "Password Management"
         }
     ]

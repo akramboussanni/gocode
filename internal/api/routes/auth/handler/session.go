@@ -17,6 +17,7 @@ import (
 // @Tags Authentication
 // @Accept json
 // @Produce json
+// @Param X-Recaptcha-Token header string false "reCAPTCHA verification token (optional if reCAPTCHA is not configured)"
 // @Param request body LoginRequest true "User login credentials"
 // @Success 200 {object} LoginResponse "Authentication successful - returns session and refresh tokens"
 // @Failure 400 {object} api.ErrorResponse "Invalid request format or missing required fields"
@@ -50,6 +51,7 @@ func (ar *AuthRouter) HandleLogin(w http.ResponseWriter, r *http.Request) {
 // @Tags Authentication
 // @Accept json
 // @Produce json
+// @Param X-Recaptcha-Token header string false "reCAPTCHA verification token (optional if reCAPTCHA is not configured)"
 // @Param request body TokenRequest true "Refresh token"
 // @Success 200 {object} LoginResponse "Token refresh successful - returns new session and refresh tokens"
 // @Failure 400 {object} api.ErrorResponse "Invalid request format or missing token"
