@@ -11,6 +11,7 @@ import (
 
 var JwtSecret []byte
 var MailerSetting mailer.MailerSetting
+var RecaptchaSecret string
 
 func Init() {
 	godotenv.Load()
@@ -35,5 +36,13 @@ func Init() {
 		Username: os.Getenv("SMTP_USERNAME"),
 		Sender:   os.Getenv("SMTP_SENDER"),
 		Password: os.Getenv("SMTP_PASSWORD"),
+	}
+
+	recaptchaEnabled, err := strconv.ParseBool(os.Getenv("RECAPTCHA_V3_ENABLED"))
+	if err == nil && recaptchaEnabled {
+		RecaptchaSecret = os.Getenv("RECAPTCHA_V3_SECRET")
+	}
+
+	if recaptchaEnabled {
 	}
 }

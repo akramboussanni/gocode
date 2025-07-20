@@ -12,11 +12,9 @@ import (
 func SetupRouter(repos *repo.Repos) http.Handler {
 	r := chi.NewRouter()
 
-	// Middleware stack
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// Routes
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("github.com/akramboussanni/gocode"))
 	})

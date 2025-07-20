@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/akramboussanni/gocode/internal/api"
-	"github.com/akramboussanni/gocode/internal/mailer"
-	"github.com/akramboussanni/gocode/internal/utils"
 )
 
 func (ar *AuthRouter) HandleConfirmEmail(w http.ResponseWriter, r *http.Request) {
@@ -74,27 +72,15 @@ func (ar *AuthRouter) HandleResendConfirmation(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	confirmToken, err := utils.GetRandomToken(16)
+	_, hash, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation")
 	if err != nil {
-		http.Error(w, "server error", http.StatusInternalServerError)
+		http.Error(w, "failed to send email", http.StatusInternalServerError)
 		return
 	}
-
-	user.EmailConfirmToken = confirmToken.Hash
+	user.EmailConfirmToken = hash
 	user.EmailConfirmIssuedAt = time.Now().UTC().Unix()
-
 	if err := ar.UserRepo.UpdateUser(r.Context(), user); err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
-		return
-	}
-
-	headers := []mailer.MailHeader{
-		mailer.MakeHeader("Subject", "Email confirmation"),
-		mailer.MakeHeader("To", user.Email),
-	}
-
-	if err := mailer.Send("confirmregister", headers, map[string]any{"Token": confirmToken.Raw}); err != nil {
-		http.Error(w, "failed to send email", http.StatusInternalServerError)
 		return
 	}
 

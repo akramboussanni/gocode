@@ -7,6 +7,7 @@ import (
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api"
+	"github.com/akramboussanni/gocode/internal/jwt"
 	"github.com/akramboussanni/gocode/internal/middleware"
 	"github.com/akramboussanni/gocode/internal/model"
 )
@@ -28,7 +29,7 @@ func (ar *AuthRouter) HandleProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ar *AuthRouter) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	claims := middleware.GetClaims(w, r, config.JwtSecret, ar.TokenRepo)
+	claims := middleware.GetClaims(w, r, config.JwtSecret, ar.TokenRepo, jwt.Credentials)
 	if claims == nil {
 		return
 	}

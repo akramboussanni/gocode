@@ -19,10 +19,10 @@ func UserIDFromContext(ctx context.Context) (int64, bool) {
 	return id, ok
 }
 
-func JWTAuth(secret []byte, tr *repo.TokenRepo) func(http.Handler) http.Handler {
+func JWTAuth(secret []byte, tr *repo.TokenRepo, expectedType jwt.TokenType) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims := GetClaims(w, r, secret, tr)
+			claims := GetClaims(w, r, secret, tr, expectedType)
 			if claims == nil {
 				return
 			}
@@ -33,7 +33,7 @@ func JWTAuth(secret []byte, tr *repo.TokenRepo) func(http.Handler) http.Handler 
 	}
 }
 
-func GetClaims(w http.ResponseWriter, r *http.Request, secret []byte, tr *repo.TokenRepo) *jwt.Claims {
+func GetClaims(w http.ResponseWriter, r *http.Request, secret []byte, tr *repo.TokenRepo, expectedType jwt.TokenType) *jwt.Claims {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 		http.Error(w, "missing or invalid authorization header", http.StatusUnauthorized)
@@ -44,7 +44,12 @@ func GetClaims(w http.ResponseWriter, r *http.Request, secret []byte, tr *repo.T
 
 	claims, err := jwt.ValidateToken(tokenStr, config.JwtSecret, tr)
 	if err != nil {
-		http.Error(w, "invalid token", http.StatusUnauthorized)
+		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		return nil
+	}
+
+	if claims.Type != expectedType {
+		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return nil
 	}
 

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/akramboussanni/gocode/config"
+	"github.com/akramboussanni/gocode/internal/jwt"
 	"github.com/akramboussanni/gocode/internal/middleware"
 	"github.com/akramboussanni/gocode/internal/repo"
 )
@@ -14,5 +15,5 @@ type AuthRouter struct {
 }
 
 func (ar *AuthRouter) AuthMiddleware(next http.Handler) http.Handler {
-	return middleware.JWTAuth(config.JwtSecret, ar.TokenRepo)(next)
+	return middleware.JWTAuth(config.JwtSecret, ar.TokenRepo, jwt.Credentials)(next)
 }

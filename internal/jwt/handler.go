@@ -70,3 +70,13 @@ func ValidateToken(token string, secret []byte, tr *repo.TokenRepo) (*Claims, er
 
 	return &claims, nil
 }
+
+func CreateJwt(claims Claims) Jwt {
+	return Jwt{
+		Header: Header{
+			Algorithm: "HS256",
+			Type:      "JWT",
+		},
+		Payload: claims,
+	}
+}
