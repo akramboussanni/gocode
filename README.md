@@ -2,7 +2,14 @@
 a quick-setup, fast, Go-chi backend example repository
 
 ## developing
-when testing in dev mode, it is heavily recommended to apply debug tan (done by adding `-tags=debug` in your command, e.g. `go run -tags=debug cmd/server/main.go`). the benefits of doing so are:
+### python script
+the repo provides a python script to run in dev mode quickly, simply run `python run.py`.
+- installs swagger cli
+- updates docs
+- runs in debug mode
+
+### manual
+when testing in dev mode, it is heavily recommended to apply debug tag (done by adding `-tags=debug` in your command, e.g. `go run -tags=debug cmd/server/main.go`). the benefits of doing so are:
 - sqlite instead of postgres
 - runs a swagger server @ `localhost:9520/swagger/`
 
