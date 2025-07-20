@@ -34,7 +34,9 @@ func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo) http.Hand
 	})
 
 	r.Group(func(r chi.Router) {
-
+		r.Use(httprate.LimitByIP(8, 1*time.Minute))
+		middleware.AddRecaptcha(r)
+		r.Post("/refresh", ar.HandleRefresh)
 	})
 
 	//30/min

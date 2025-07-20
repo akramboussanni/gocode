@@ -13,6 +13,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// @Summary Reset password with token
+// @Description Reset user password using a reset token
+// @Tags Password
+// @Accept json
+// @Produce json
+// @Param request body PasswordResetRequest true "Reset token and new password"
+// @Success 200 {string} string "Password reset successful"
+// @Failure 400 {string} string "Invalid password"
+// @Failure 401 {string} string "Invalid credentials or expired token"
+// @Failure 500 {string} string "Server error"
+// @Router /api/auth/reset-password [post]
 func (ar *AuthRouter) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[PasswordResetRequest](w, r)
 	if err != nil {
@@ -58,6 +69,16 @@ func (ar *AuthRouter) HandleForgotPassword(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
+// @Summary Send password reset email
+// @Description Send password reset email to user's email address
+// @Tags Password
+// @Accept json
+// @Produce json
+// @Param request body EmailRequest true "User email"
+// @Success 200 {object} map[string]string "Password reset email sent"
+// @Failure 401 {string} string "Invalid credentials"
+// @Failure 500 {string} string "Server error"
+// @Router /api/auth/forgot-password [post]
 func (ar *AuthRouter) HandleSendForgotPassword(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[EmailRequest](w, r)
 	if err != nil {
@@ -84,6 +105,18 @@ func (ar *AuthRouter) HandleSendForgotPassword(w http.ResponseWriter, r *http.Re
 	api.WriteMessage(w, 200, "message", "password reset sent")
 }
 
+// @Summary Change password
+// @Description Change user password (requires authentication)
+// @Tags Password
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body PasswordChangeRequest true "Old and new password"
+// @Success 200 {string} string "Password changed successfully"
+// @Failure 400 {string} string "Invalid password"
+// @Failure 401 {string} string "Invalid credentials"
+// @Failure 500 {string} string "Server error"
+// @Router /api/auth/change-password [post]
 func (ar *AuthRouter) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[PasswordChangeRequest](w, r)
 	if err != nil {

@@ -1,8 +1,9 @@
-package routes
+package api
 
 import (
 	"net/http"
 
+	"github.com/akramboussanni/gocode/internal/api"
 	"github.com/akramboussanni/gocode/internal/api/routes/auth"
 	"github.com/akramboussanni/gocode/internal/repo"
 	"github.com/go-chi/chi/v5"
@@ -18,6 +19,8 @@ func SetupRouter(repos *repo.Repos) http.Handler {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("github.com/akramboussanni/gocode"))
 	})
+
+	api.AddSwaggerRoutes(r)
 
 	r.Mount("/api/auth", auth.NewAuthRouter(repos.User, repos.Token))
 

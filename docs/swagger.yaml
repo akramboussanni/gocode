@@ -1,0 +1,438 @@
+basePath: /
+definitions:
+  handler.Credentials:
+    description: User registration and login credentials
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      password:
+        example: securepassword123
+        type: string
+      username:
+        example: johndoe
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  handler.EmailRequest:
+    description: Email request for various operations
+    properties:
+      email:
+        example: john@example.com
+        type: string
+    required:
+    - email
+    type: object
+  handler.LoginResponse:
+    description: Login response with JWT tokens
+    properties:
+      refresh:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      session:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  handler.PasswordChangeRequest:
+    description: Password change request with old and new password
+    properties:
+      new_password:
+        example: newsecurepassword123
+        type: string
+      old_password:
+        example: oldpassword123
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  handler.PasswordResetRequest:
+    description: Password reset request with token and new password
+    properties:
+      new_password:
+        example: newsecurepassword123
+        type: string
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    required:
+    - new_password
+    - token
+    type: object
+  handler.TokenRequest:
+    description: Token request for various operations
+    properties:
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    required:
+    - token
+    type: object
+  model.User:
+    description: User model with profile information
+    properties:
+      created_at:
+        example: 1640995200
+        type: integer
+      email:
+        example: john@example.com
+        type: string
+      id:
+        example: 123456789
+        type: integer
+      role:
+        example: user
+        type: string
+      username:
+        example: johndoe
+        type: string
+    type: object
+host: localhost:9520
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: A quick-setup, fast, Go-chi backend API with authentication and email
+    confirmation
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: GoCode API
+  version: "1.0"
+paths:
+  /api/auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change user password (requires authentication)
+      parameters:
+      - description: Old and new password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.PasswordChangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password changed successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid password
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - Password
+  /api/auth/confirm-email:
+    post:
+      consumes:
+      - application/json
+      description: Confirm user email address using a confirmation token
+      parameters:
+      - description: Confirmation token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.TokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email confirmed successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials or expired token
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Confirm email address
+      tags:
+      - Authentication
+  /api/auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Send password reset email to user's email address
+      parameters:
+      - description: User email
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.EmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset email sent
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Send password reset email
+      tags:
+      - Password
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT tokens
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.Credentials'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful with tokens
+          schema:
+            $ref: '#/definitions/handler.LoginResponse'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials or email not confirmed
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: User login
+      tags:
+      - Authentication
+  /api/auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout user by revoking their JWT token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Logout user
+      tags:
+      - Account
+  /api/auth/me:
+    get:
+      consumes:
+      - application/json
+      description: Get current user's profile information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile information
+          schema:
+            $ref: '#/definitions/model.User'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - Account
+  /api/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh user's JWT token using refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.TokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New tokens generated
+          schema:
+            $ref: '#/definitions/handler.LoginResponse'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Refresh JWT token
+      tags:
+      - Authentication
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account with email confirmation
+      parameters:
+      - description: User registration credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.Credentials'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User created successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid credentials or duplicate username
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Register new user
+      tags:
+      - Authentication
+  /api/auth/resend-confirmation:
+    post:
+      consumes:
+      - application/json
+      description: Resend email confirmation to user's email address
+      parameters:
+      - description: User email
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.EmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Confirmation email resent
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Email already confirmed
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Resend confirmation email
+      tags:
+      - Authentication
+  /api/auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset user password using a reset token
+      parameters:
+      - description: Reset token and new password
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.PasswordResetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successful
+          schema:
+            type: string
+        "400":
+          description: Invalid password
+          schema:
+            type: string
+        "401":
+          description: Invalid credentials or expired token
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Reset password with token
+      tags:
+      - Password
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

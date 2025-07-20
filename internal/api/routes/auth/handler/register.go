@@ -11,6 +11,16 @@ import (
 	"github.com/akramboussanni/gocode/internal/utils"
 )
 
+// @Summary Register new user
+// @Description Register a new user account with email confirmation
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body Credentials true "User registration credentials"
+// @Success 200 {object} map[string]string "User created successfully"
+// @Failure 400 {string} string "Invalid credentials or duplicate username"
+// @Failure 500 {string} string "Server error"
+// @Router /api/auth/register [post]
 func (ar *AuthRouter) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	cred, err := api.DecodeJSON[Credentials](w, r)
 	if err != nil {

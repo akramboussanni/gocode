@@ -10,6 +10,17 @@ import (
 	"github.com/akramboussanni/gocode/internal/api"
 )
 
+// @Summary Confirm email address
+// @Description Confirm user email address using a confirmation token
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body TokenRequest true "Confirmation token"
+// @Success 200 {string} string "Email confirmed successfully"
+// @Failure 400 {string} string "Invalid request"
+// @Failure 401 {string} string "Invalid credentials or expired token"
+// @Failure 500 {string} string "Server error"
+// @Router /api/auth/confirm-email [post]
 func (ar *AuthRouter) HandleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[TokenRequest](w, r)
 	if err != nil {
@@ -49,6 +60,17 @@ func (ar *AuthRouter) HandleConfirmEmail(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
+// @Summary Resend confirmation email
+// @Description Resend email confirmation to user's email address
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body EmailRequest true "User email"
+// @Success 200 {object} map[string]string "Confirmation email resent"
+// @Failure 400 {string} string "Email already confirmed"
+// @Failure 401 {string} string "Invalid credentials"
+// @Failure 500 {string} string "Server error"
+// @Router /api/auth/resend-confirmation [post]
 func (ar *AuthRouter) HandleResendConfirmation(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[EmailRequest](w, r)
 	if err != nil {
