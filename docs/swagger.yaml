@@ -1,49 +1,66 @@
 basePath: /
 definitions:
-  handler.Credentials:
-    description: User registration and login credentials
+  api.ErrorResponse:
+    description: Standard error response
+    properties:
+      error:
+        example: Invalid request format
+        type: string
+    type: object
+  api.SuccessResponse:
+    description: Standard success response
+    properties:
+      message:
+        example: Operation completed successfully
+        type: string
+    type: object
+  handler.EmailRequest:
+    description: Email-based request for password reset and email confirmation resend
     properties:
       email:
         example: john@example.com
+        format: email
+        type: string
+      url:
+        example: https://example.com/reset
+        format: uri
+        type: string
+    required:
+    - email
+    type: object
+  handler.LoginRequest:
+    description: User login credentials
+    properties:
+      email:
+        example: john@example.com
+        format: email
         type: string
       password:
-        example: securepassword123
-        type: string
-      username:
-        example: johndoe
+        example: SecurePass123!
         type: string
     required:
     - email
     - password
-    - username
-    type: object
-  handler.EmailRequest:
-    description: Email request for various operations
-    properties:
-      email:
-        example: john@example.com
-        type: string
-    required:
-    - email
     type: object
   handler.LoginResponse:
-    description: Login response with JWT tokens
+    description: Authentication response containing JWT tokens
     properties:
       refresh:
-        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjM0NTY3ODkwLCJ0b2tlbl9pZCI6ImFiY2RlZiIsImlhdCI6MTY0MDk5NTIwMCwiZXhwIjoxNjQwOTk1MjAwLCJlbWFpbCI6ImpvaG5AZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciJ9.signature
         type: string
       session:
-        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjM0NTY3ODkwLCJ0b2tlbl9pZCI6ImFiY2RlZiIsImlhdCI6MTY0MDk5NTIwMCwiZXhwIjoxNjQwOTk1MjAwLCJlbWFpbCI6ImpvaG5AZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciJ9.signature
         type: string
     type: object
   handler.PasswordChangeRequest:
-    description: Password change request with old and new password
+    description: Password change request requiring current password verification
     properties:
       new_password:
-        example: newsecurepassword123
+        example: NewSecurePass123!
+        minLength: 8
         type: string
       old_password:
-        example: oldpassword123
+        example: OldSecurePass123!
         type: string
     required:
     - new_password
@@ -53,7 +70,8 @@ definitions:
     description: Password reset request with token and new password
     properties:
       new_password:
-        example: newsecurepassword123
+        example: NewSecurePass123!
+        minLength: 8
         type: string
       token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -62,8 +80,35 @@ definitions:
     - new_password
     - token
     type: object
+  handler.RegisterRequest:
+    description: User registration request with email confirmation
+    properties:
+      email:
+        example: john@example.com
+        format: email
+        type: string
+      password:
+        example: SecurePass123!
+        minLength: 8
+        type: string
+      url:
+        example: https://example.com/confirm
+        format: uri
+        type: string
+      username:
+        example: johndoe
+        maxLength: 30
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - url
+    - username
+    type: object
   handler.TokenRequest:
-    description: Token request for various operations
+    description: Token-based request for various operations (email confirmation, password
+      reset, token refresh)
     properties:
       token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -93,25 +138,27 @@ definitions:
 host: localhost:9520
 info:
   contact:
-    email: support@swagger.io
+    email: support@example.com
     name: API Support
-    url: http://www.swagger.io/support
-  description: A quick-setup, fast, Go-chi backend API with authentication and email
-    confirmation
+    url: https://github.com/akramboussanni/gocode/issues
+  description: A secure, fast, and feature-rich Go-Chi backend with JWT authentication,
+    email verification, and password management. Built with modern Go practices and
+    comprehensive security features.
   license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
-  termsOfService: http://swagger.io/terms/
-  title: GoCode API
-  version: "1.0"
+    name: MIT License
+    url: https://github.com/akramboussanni/gocode/blob/main/LICENSE
+  termsOfService: https://github.com/akramboussanni/gocode/blob/main/LICENSE
+  title: gocode API
+  version: 1.0.0
 paths:
   /api/auth/change-password:
     post:
       consumes:
       - application/json
-      description: Change user password (requires authentication)
+      description: Change user password while authenticated. Requires current password
+        verification and new password must meet security requirements.
       parameters:
-      - description: Old and new password
+      - description: Current password and new password
         in: body
         name: request
         required: true
@@ -125,29 +172,34 @@ paths:
           schema:
             type: string
         "400":
-          description: Invalid password
+          description: Invalid password format or requirements not met
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Invalid credentials
+          description: Unauthorized or incorrect current password
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (5 requests per minute)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Server error
+          description: Internal server error
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Change password
+      summary: Change password (authenticated)
       tags:
-      - Password
+      - Password Management
   /api/auth/confirm-email:
     post:
       consumes:
       - application/json
-      description: Confirm user email address using a confirmation token
+      description: Confirm user's email address using the confirmation token sent
+        during registration. Token expires after 24 hours.
       parameters:
-      - description: Confirmation token
+      - description: Email confirmation token
         in: body
         name: request
         required: true
@@ -157,31 +209,36 @@ paths:
       - application/json
       responses:
         "200":
-          description: Email confirmed successfully
+          description: Email confirmed successfully - user can now login
           schema:
-            type: string
+            $ref: '#/definitions/api.SuccessResponse'
         "400":
-          description: Invalid request
+          description: Invalid request format or missing token
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Invalid credentials or expired token
+          description: Invalid or expired confirmation token
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (5 requests per minute)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Server error
+          description: Internal server error
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Confirm email address
       tags:
-      - Authentication
+      - Email Verification
   /api/auth/forgot-password:
     post:
       consumes:
       - application/json
-      description: Send password reset email to user's email address
+      description: Send password reset email to user's email address. A reset token
+        will be generated and sent via email with a 1-hour expiration.
       parameters:
-      - description: User email
+      - description: User email and reset URL
         in: body
         name: request
         required: true
@@ -191,111 +248,133 @@ paths:
       - application/json
       responses:
         "200":
-          description: Password reset email sent
+          description: Password reset email sent successfully
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.SuccessResponse'
+        "400":
+          description: Invalid request format or missing email
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Invalid credentials
+          description: User not found with provided email
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (5 requests per minute)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Server error
+          description: Internal server error or email sending failure
           schema:
-            type: string
-      summary: Send password reset email
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Request password reset email
       tags:
-      - Password
+      - Password Management
   /api/auth/login:
     post:
       consumes:
       - application/json
-      description: Authenticate user and return JWT tokens
+      description: Authenticate user with email and password, returning session and
+        refresh JWT tokens. User must have confirmed their email address.
       parameters:
-      - description: Login credentials
+      - description: User login credentials
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handler.Credentials'
+          $ref: '#/definitions/handler.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: Login successful with tokens
+          description: Authentication successful - returns session and refresh tokens
           schema:
             $ref: '#/definitions/handler.LoginResponse'
         "400":
-          description: Invalid request
+          description: Invalid request format or missing required fields
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
           description: Invalid credentials or email not confirmed
           schema:
-            type: string
-        "500":
-          description: Server error
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (8 requests per minute)
           schema:
-            type: string
-      summary: User login
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Authenticate user and get JWT tokens
       tags:
       - Authentication
   /api/auth/logout:
     post:
       consumes:
       - application/json
-      description: Logout user by revoking their JWT token
+      description: Logout the current user by revoking their JWT session token. The
+        token will be added to the blacklist and cannot be used again.
       produces:
       - application/json
       responses:
         "200":
-          description: Logout successful
+          description: Logout successful - session token revoked
           schema:
             type: string
         "401":
-          description: Unauthorized
+          description: Unauthorized - invalid or missing JWT token
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (8 requests per minute)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Server error
+          description: Internal server error during token revocation
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Logout user
+      summary: Logout user and revoke session
       tags:
       - Account
   /api/auth/me:
     get:
       consumes:
       - application/json
-      description: Get current user's profile information
+      description: Retrieve the current authenticated user's profile information.
+        Returns safe user data (excluding sensitive fields like password hash).
       produces:
       - application/json
       responses:
         "200":
-          description: User profile information
+          description: User profile information (safe fields only)
           schema:
             $ref: '#/definitions/model.User'
         "401":
-          description: Unauthorized
+          description: Unauthorized - invalid or missing JWT token
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (30 requests per minute)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Server error
+          description: Internal server error
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get user profile
+      summary: Get current user profile
       tags:
       - Account
   /api/auth/refresh:
     post:
       consumes:
       - application/json
-      description: Refresh user's JWT token using refresh token
+      description: Refresh user's JWT tokens using a valid refresh token. The old
+        refresh token will be revoked and new session/refresh tokens will be issued.
       parameters:
       - description: Refresh token
         in: body
@@ -307,63 +386,73 @@ paths:
       - application/json
       responses:
         "200":
-          description: New tokens generated
+          description: Token refresh successful - returns new session and refresh
+            tokens
           schema:
             $ref: '#/definitions/handler.LoginResponse'
         "400":
-          description: Invalid request
+          description: Invalid request format or missing token
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Invalid credentials
+          description: Invalid, expired, or revoked refresh token
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (8 requests per minute)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Server error
+          description: Internal server error
           schema:
-            type: string
-      summary: Refresh JWT token
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Refresh JWT tokens
       tags:
       - Authentication
   /api/auth/register:
     post:
       consumes:
       - application/json
-      description: Register a new user account with email confirmation
+      description: Register a new user account with email confirmation. The system
+        will validate credentials, check for duplicates, hash the password, and send
+        a confirmation email. Username cannot contain '@' symbol.
       parameters:
-      - description: User registration credentials
+      - description: User registration credentials including confirmation URL
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handler.Credentials'
+          $ref: '#/definitions/handler.RegisterRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: User created successfully
+          description: User account created successfully - confirmation email sent
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.SuccessResponse'
         "400":
-          description: Invalid credentials or duplicate username
+          description: Invalid credentials, duplicate username, or validation errors
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (2 requests per minute)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Server error
+          description: Internal server error or email sending failure
           schema:
-            type: string
-      summary: Register new user
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Register new user account
       tags:
       - Authentication
   /api/auth/resend-confirmation:
     post:
       consumes:
       - application/json
-      description: Resend email confirmation to user's email address
+      description: Resend email confirmation token to user's email address. Useful
+        if the original confirmation email was not received or expired.
       parameters:
-      - description: User email
+      - description: User email and confirmation URL
         in: body
         name: request
         required: true
@@ -373,31 +462,34 @@ paths:
       - application/json
       responses:
         "200":
-          description: Confirmation email resent
+          description: Confirmation email sent successfully
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/api.SuccessResponse'
         "400":
-          description: Email already confirmed
+          description: Invalid request format or missing email
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Invalid credentials
+          description: User not found or email already confirmed
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (5 requests per minute)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Server error
+          description: Internal server error or email sending failure
           schema:
-            type: string
-      summary: Resend confirmation email
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Resend email confirmation
       tags:
-      - Authentication
+      - Email Verification
   /api/auth/reset-password:
     post:
       consumes:
       - application/json
-      description: Reset user password using a reset token
+      description: Reset user password using a reset token sent via email. Token expires
+        after 1 hour. New password must meet security requirements.
       parameters:
       - description: Reset token and new password
         in: body
@@ -413,26 +505,41 @@ paths:
           schema:
             type: string
         "400":
-          description: Invalid password
+          description: Invalid password format or requirements not met
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
         "401":
-          description: Invalid credentials or expired token
+          description: Invalid or expired reset token
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
+        "429":
+          description: Rate limit exceeded (5 requests per minute)
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
         "500":
-          description: Server error
+          description: Internal server error
           schema:
-            type: string
+            $ref: '#/definitions/api.ErrorResponse'
       summary: Reset password with token
       tags:
-      - Password
+      - Password Management
 schemes:
 - http
+- https
 securityDefinitions:
   BearerAuth:
-    description: Type "Bearer" followed by a space and JWT token.
+    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
+      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
     in: header
     name: Authorization
     type: apiKey
 swagger: "2.0"
+tags:
+- description: User registration, login, and token management endpoints
+  name: Authentication
+- description: User profile and account management endpoints
+  name: Account
+- description: Email confirmation and verification endpoints
+  name: Email Verification
+- description: Password reset, change, and recovery endpoints
+  name: Password Management

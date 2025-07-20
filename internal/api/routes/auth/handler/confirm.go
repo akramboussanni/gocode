@@ -11,15 +11,16 @@ import (
 )
 
 // @Summary Confirm email address
-// @Description Confirm user email address using a confirmation token
-// @Tags Authentication
+// @Description Confirm user's email address using the confirmation token sent during registration. Token expires after 24 hours.
+// @Tags Email Verification
 // @Accept json
 // @Produce json
-// @Param request body TokenRequest true "Confirmation token"
-// @Success 200 {string} string "Email confirmed successfully"
-// @Failure 400 {string} string "Invalid request"
-// @Failure 401 {string} string "Invalid credentials or expired token"
-// @Failure 500 {string} string "Server error"
+// @Param request body TokenRequest true "Email confirmation token"
+// @Success 200 {object} api.SuccessResponse "Email confirmed successfully - user can now login"
+// @Failure 400 {object} api.ErrorResponse "Invalid request format or missing token"
+// @Failure 401 {object} api.ErrorResponse "Invalid or expired confirmation token"
+// @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (5 requests per minute)"
+// @Failure 500 {object} api.ErrorResponse "Internal server error"
 // @Router /api/auth/confirm-email [post]
 func (ar *AuthRouter) HandleConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[TokenRequest](w, r)
@@ -60,16 +61,17 @@ func (ar *AuthRouter) HandleConfirmEmail(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-// @Summary Resend confirmation email
-// @Description Resend email confirmation to user's email address
-// @Tags Authentication
+// @Summary Resend email confirmation
+// @Description Resend email confirmation token to user's email address. Useful if the original confirmation email was not received or expired.
+// @Tags Email Verification
 // @Accept json
 // @Produce json
-// @Param request body EmailRequest true "User email"
-// @Success 200 {object} map[string]string "Confirmation email resent"
-// @Failure 400 {string} string "Email already confirmed"
-// @Failure 401 {string} string "Invalid credentials"
-// @Failure 500 {string} string "Server error"
+// @Param request body EmailRequest true "User email and confirmation URL"
+// @Success 200 {object} api.SuccessResponse "Confirmation email sent successfully"
+// @Failure 400 {object} api.ErrorResponse "Invalid request format or missing email"
+// @Failure 401 {object} api.ErrorResponse "User not found or email already confirmed"
+// @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (5 requests per minute)"
+// @Failure 500 {object} api.ErrorResponse "Internal server error or email sending failure"
 // @Router /api/auth/resend-confirmation [post]
 func (ar *AuthRouter) HandleResendConfirmation(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[EmailRequest](w, r)
@@ -88,7 +90,7 @@ func (ar *AuthRouter) HandleResendConfirmation(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	token, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation")
+	token, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation", req.Url)
 	if err != nil {
 		api.WriteInternalError(w)
 		return

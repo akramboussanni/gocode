@@ -14,15 +14,16 @@ import (
 )
 
 // @Summary Reset password with token
-// @Description Reset user password using a reset token
-// @Tags Password
+// @Description Reset user password using a reset token sent via email. Token expires after 1 hour. New password must meet security requirements.
+// @Tags Password Management
 // @Accept json
 // @Produce json
 // @Param request body PasswordResetRequest true "Reset token and new password"
 // @Success 200 {string} string "Password reset successful"
-// @Failure 400 {string} string "Invalid password"
-// @Failure 401 {string} string "Invalid credentials or expired token"
-// @Failure 500 {string} string "Server error"
+// @Failure 400 {object} api.ErrorResponse "Invalid password format or requirements not met"
+// @Failure 401 {object} api.ErrorResponse "Invalid or expired reset token"
+// @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (5 requests per minute)"
+// @Failure 500 {object} api.ErrorResponse "Internal server error"
 // @Router /api/auth/reset-password [post]
 func (ar *AuthRouter) HandleForgotPassword(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[PasswordResetRequest](w, r)
@@ -69,15 +70,17 @@ func (ar *AuthRouter) HandleForgotPassword(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
-// @Summary Send password reset email
-// @Description Send password reset email to user's email address
-// @Tags Password
+// @Summary Request password reset email
+// @Description Send password reset email to user's email address. A reset token will be generated and sent via email with a 1-hour expiration.
+// @Tags Password Management
 // @Accept json
 // @Produce json
-// @Param request body EmailRequest true "User email"
-// @Success 200 {object} map[string]string "Password reset email sent"
-// @Failure 401 {string} string "Invalid credentials"
-// @Failure 500 {string} string "Server error"
+// @Param request body EmailRequest true "User email and reset URL"
+// @Success 200 {object} api.SuccessResponse "Password reset email sent successfully"
+// @Failure 400 {object} api.ErrorResponse "Invalid request format or missing email"
+// @Failure 401 {object} api.ErrorResponse "User not found with provided email"
+// @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (5 requests per minute)"
+// @Failure 500 {object} api.ErrorResponse "Internal server error or email sending failure"
 // @Router /api/auth/forgot-password [post]
 func (ar *AuthRouter) HandleSendForgotPassword(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[EmailRequest](w, r)
@@ -91,7 +94,7 @@ func (ar *AuthRouter) HandleSendForgotPassword(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	token, err := GenerateTokenAndSendEmail(user.Email, "forgotpassword", "Password reset")
+	token, err := GenerateTokenAndSendEmail(user.Email, "forgotpassword", "Password reset", req.Url)
 	if err != nil {
 		api.WriteInternalError(w)
 		return
@@ -105,17 +108,18 @@ func (ar *AuthRouter) HandleSendForgotPassword(w http.ResponseWriter, r *http.Re
 	api.WriteMessage(w, 200, "message", "password reset sent")
 }
 
-// @Summary Change password
-// @Description Change user password (requires authentication)
-// @Tags Password
+// @Summary Change password (authenticated)
+// @Description Change user password while authenticated. Requires current password verification and new password must meet security requirements.
+// @Tags Password Management
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body PasswordChangeRequest true "Old and new password"
+// @Param request body PasswordChangeRequest true "Current password and new password"
 // @Success 200 {string} string "Password changed successfully"
-// @Failure 400 {string} string "Invalid password"
-// @Failure 401 {string} string "Invalid credentials"
-// @Failure 500 {string} string "Server error"
+// @Failure 400 {object} api.ErrorResponse "Invalid password format or requirements not met"
+// @Failure 401 {object} api.ErrorResponse "Unauthorized or incorrect current password"
+// @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (5 requests per minute)"
+// @Failure 500 {object} api.ErrorResponse "Internal server error"
 // @Router /api/auth/change-password [post]
 func (ar *AuthRouter) HandleChangePassword(w http.ResponseWriter, r *http.Request) {
 	req, err := api.DecodeJSON[PasswordChangeRequest](w, r)

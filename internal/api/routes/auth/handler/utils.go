@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func GenerateTokenAndSendEmail(email, templateName, subject string) (*model.Token, error) {
+func GenerateTokenAndSendEmail(email, templateName, subject, url string) (*model.Token, error) {
 	token, err := utils.GetRandomToken(16)
 	if err != nil {
 		return nil, err
@@ -21,7 +21,7 @@ func GenerateTokenAndSendEmail(email, templateName, subject string) (*model.Toke
 		mailer.MakeHeader("To", email),
 	}
 
-	err = mailer.Send(templateName, headers, map[string]any{"Token": token.Raw})
+	err = mailer.Send(templateName, headers, map[string]any{"Token": token.Raw, "Url": url})
 	if err != nil {
 		return nil, err
 	}

@@ -9,15 +9,15 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://swagger.io/terms/",
+        "termsOfService": "https://github.com/akramboussanni/gocode/blob/main/LICENSE",
         "contact": {
             "name": "API Support",
-            "url": "http://www.swagger.io/support",
-            "email": "support@swagger.io"
+            "url": "https://github.com/akramboussanni/gocode/issues",
+            "email": "support@example.com"
         },
         "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+            "name": "MIT License",
+            "url": "https://github.com/akramboussanni/gocode/blob/main/LICENSE"
         },
         "version": "{{.Version}}"
     },
@@ -31,7 +31,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Change user password (requires authentication)",
+                "description": "Change user password while authenticated. Requires current password verification and new password must meet security requirements.",
                 "consumes": [
                     "application/json"
                 ],
@@ -39,12 +39,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Password"
+                    "Password Management"
                 ],
-                "summary": "Change password",
+                "summary": "Change password (authenticated)",
                 "parameters": [
                     {
-                        "description": "Old and new password",
+                        "description": "Current password and new password",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -61,21 +61,27 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid password",
+                        "description": "Invalid password format or requirements not met",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials",
+                        "description": "Unauthorized or incorrect current password",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (5 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -83,7 +89,7 @@ const docTemplate = `{
         },
         "/api/auth/confirm-email": {
             "post": {
-                "description": "Confirm user email address using a confirmation token",
+                "description": "Confirm user's email address using the confirmation token sent during registration. Token expires after 24 hours.",
                 "consumes": [
                     "application/json"
                 ],
@@ -91,12 +97,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Authentication"
+                    "Email Verification"
                 ],
                 "summary": "Confirm email address",
                 "parameters": [
                     {
-                        "description": "Confirmation token",
+                        "description": "Email confirmation token",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -107,27 +113,33 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Email confirmed successfully",
+                        "description": "Email confirmed successfully - user can now login",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.SuccessResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Invalid request format or missing token",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials or expired token",
+                        "description": "Invalid or expired confirmation token",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (5 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -135,7 +147,7 @@ const docTemplate = `{
         },
         "/api/auth/forgot-password": {
             "post": {
-                "description": "Send password reset email to user's email address",
+                "description": "Send password reset email to user's email address. A reset token will be generated and sent via email with a 1-hour expiration.",
                 "consumes": [
                     "application/json"
                 ],
@@ -143,12 +155,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Password"
+                    "Password Management"
                 ],
-                "summary": "Send password reset email",
+                "summary": "Request password reset email",
                 "parameters": [
                     {
-                        "description": "User email",
+                        "description": "User email and reset URL",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -159,24 +171,33 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Password reset email sent",
+                        "description": "Password reset email sent successfully",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format or missing email",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials",
+                        "description": "User not found with provided email",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (5 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error or email sending failure",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -184,7 +205,7 @@ const docTemplate = `{
         },
         "/api/auth/login": {
             "post": {
-                "description": "Authenticate user and return JWT tokens",
+                "description": "Authenticate user with email and password, returning session and refresh JWT tokens. User must have confirmed their email address.",
                 "consumes": [
                     "application/json"
                 ],
@@ -194,41 +215,47 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "User login",
+                "summary": "Authenticate user and get JWT tokens",
                 "parameters": [
                     {
-                        "description": "Login credentials",
+                        "description": "User login credentials",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.Credentials"
+                            "$ref": "#/definitions/handler.LoginRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Login successful with tokens",
+                        "description": "Authentication successful - returns session and refresh tokens",
                         "schema": {
                             "$ref": "#/definitions/handler.LoginResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Invalid request format or missing required fields",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid credentials or email not confirmed",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (8 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -241,7 +268,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Logout user by revoking their JWT token",
+                "description": "Logout the current user by revoking their JWT session token. The token will be added to the blacklist and cannot be used again.",
                 "consumes": [
                     "application/json"
                 ],
@@ -251,24 +278,30 @@ const docTemplate = `{
                 "tags": [
                     "Account"
                 ],
-                "summary": "Logout user",
+                "summary": "Logout user and revoke session",
                 "responses": {
                     "200": {
-                        "description": "Logout successful",
+                        "description": "Logout successful - session token revoked",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Unauthorized - invalid or missing JWT token",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (8 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error during token revocation",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -281,7 +314,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get current user's profile information",
+                "description": "Retrieve the current authenticated user's profile information. Returns safe user data (excluding sensitive fields like password hash).",
                 "consumes": [
                     "application/json"
                 ],
@@ -291,24 +324,30 @@ const docTemplate = `{
                 "tags": [
                     "Account"
                 ],
-                "summary": "Get user profile",
+                "summary": "Get current user profile",
                 "responses": {
                     "200": {
-                        "description": "User profile information",
+                        "description": "User profile information (safe fields only)",
                         "schema": {
                             "$ref": "#/definitions/model.User"
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "Unauthorized - invalid or missing JWT token",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (30 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -316,7 +355,7 @@ const docTemplate = `{
         },
         "/api/auth/refresh": {
             "post": {
-                "description": "Refresh user's JWT token using refresh token",
+                "description": "Refresh user's JWT tokens using a valid refresh token. The old refresh token will be revoked and new session/refresh tokens will be issued.",
                 "consumes": [
                     "application/json"
                 ],
@@ -326,7 +365,7 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Refresh JWT token",
+                "summary": "Refresh JWT tokens",
                 "parameters": [
                     {
                         "description": "Refresh token",
@@ -340,27 +379,33 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "New tokens generated",
+                        "description": "Token refresh successful - returns new session and refresh tokens",
                         "schema": {
                             "$ref": "#/definitions/handler.LoginResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Invalid request format or missing token",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials",
+                        "description": "Invalid, expired, or revoked refresh token",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (8 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -368,7 +413,7 @@ const docTemplate = `{
         },
         "/api/auth/register": {
             "post": {
-                "description": "Register a new user account with email confirmation",
+                "description": "Register a new user account with email confirmation. The system will validate credentials, check for duplicates, hash the password, and send a confirmation email. Username cannot contain '@' symbol.",
                 "consumes": [
                     "application/json"
                 ],
@@ -378,38 +423,41 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Register new user",
+                "summary": "Register new user account",
                 "parameters": [
                     {
-                        "description": "User registration credentials",
+                        "description": "User registration credentials including confirmation URL",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.Credentials"
+                            "$ref": "#/definitions/handler.RegisterRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "User created successfully",
+                        "description": "User account created successfully - confirmation email sent",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.SuccessResponse"
                         }
                     },
                     "400": {
-                        "description": "Invalid credentials or duplicate username",
+                        "description": "Invalid credentials, duplicate username, or validation errors",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (2 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error or email sending failure",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -417,7 +465,7 @@ const docTemplate = `{
         },
         "/api/auth/resend-confirmation": {
             "post": {
-                "description": "Resend email confirmation to user's email address",
+                "description": "Resend email confirmation token to user's email address. Useful if the original confirmation email was not received or expired.",
                 "consumes": [
                     "application/json"
                 ],
@@ -425,12 +473,12 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Authentication"
+                    "Email Verification"
                 ],
-                "summary": "Resend confirmation email",
+                "summary": "Resend email confirmation",
                 "parameters": [
                     {
-                        "description": "User email",
+                        "description": "User email and confirmation URL",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -441,30 +489,33 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Confirmation email resent",
+                        "description": "Confirmation email sent successfully",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.SuccessResponse"
                         }
                     },
                     "400": {
-                        "description": "Email already confirmed",
+                        "description": "Invalid request format or missing email",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials",
+                        "description": "User not found or email already confirmed",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (5 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error or email sending failure",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -472,7 +523,7 @@ const docTemplate = `{
         },
         "/api/auth/reset-password": {
             "post": {
-                "description": "Reset user password using a reset token",
+                "description": "Reset user password using a reset token sent via email. Token expires after 1 hour. New password must meet security requirements.",
                 "consumes": [
                     "application/json"
                 ],
@@ -480,7 +531,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Password"
+                    "Password Management"
                 ],
                 "summary": "Reset password with token",
                 "parameters": [
@@ -502,21 +553,27 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid password",
+                        "description": "Invalid password format or requirements not met",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials or expired token",
+                        "description": "Invalid or expired reset token",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded (5 requests per minute)",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/api.ErrorResponse"
                         }
                     }
                 }
@@ -524,31 +581,28 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "handler.Credentials": {
-            "description": "User registration and login credentials",
+        "api.ErrorResponse": {
+            "description": "Standard error response",
             "type": "object",
-            "required": [
-                "email",
-                "password",
-                "username"
-            ],
             "properties": {
-                "email": {
+                "error": {
                     "type": "string",
-                    "example": "john@example.com"
-                },
-                "password": {
+                    "example": "Invalid request format"
+                }
+            }
+        },
+        "api.SuccessResponse": {
+            "description": "Standard success response",
+            "type": "object",
+            "properties": {
+                "message": {
                     "type": "string",
-                    "example": "securepassword123"
-                },
-                "username": {
-                    "type": "string",
-                    "example": "johndoe"
+                    "example": "Operation completed successfully"
                 }
             }
         },
         "handler.EmailRequest": {
-            "description": "Email request for various operations",
+            "description": "Email-based request for password reset and email confirmation resend",
             "type": "object",
             "required": [
                 "email"
@@ -556,26 +610,51 @@ const docTemplate = `{
             "properties": {
                 "email": {
                     "type": "string",
+                    "format": "email",
                     "example": "john@example.com"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "example": "https://example.com/reset"
+                }
+            }
+        },
+        "handler.LoginRequest": {
+            "description": "User login credentials",
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "SecurePass123!"
                 }
             }
         },
         "handler.LoginResponse": {
-            "description": "Login response with JWT tokens",
+            "description": "Authentication response containing JWT tokens",
             "type": "object",
             "properties": {
                 "refresh": {
                     "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjM0NTY3ODkwLCJ0b2tlbl9pZCI6ImFiY2RlZiIsImlhdCI6MTY0MDk5NTIwMCwiZXhwIjoxNjQwOTk1MjAwLCJlbWFpbCI6ImpvaG5AZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciJ9.signature"
                 },
                 "session": {
                     "type": "string",
-                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjM0NTY3ODkwLCJ0b2tlbl9pZCI6ImFiY2RlZiIsImlhdCI6MTY0MDk5NTIwMCwiZXhwIjoxNjQwOTk1MjAwLCJlbWFpbCI6ImpvaG5AZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciJ9.signature"
                 }
             }
         },
         "handler.PasswordChangeRequest": {
-            "description": "Password change request with old and new password",
+            "description": "Password change request requiring current password verification",
             "type": "object",
             "required": [
                 "new_password",
@@ -584,11 +663,12 @@ const docTemplate = `{
             "properties": {
                 "new_password": {
                     "type": "string",
-                    "example": "newsecurepassword123"
+                    "minLength": 8,
+                    "example": "NewSecurePass123!"
                 },
                 "old_password": {
                     "type": "string",
-                    "example": "oldpassword123"
+                    "example": "OldSecurePass123!"
                 }
             }
         },
@@ -602,7 +682,8 @@ const docTemplate = `{
             "properties": {
                 "new_password": {
                     "type": "string",
-                    "example": "newsecurepassword123"
+                    "minLength": 8,
+                    "example": "NewSecurePass123!"
                 },
                 "token": {
                     "type": "string",
@@ -610,8 +691,41 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.RegisterRequest": {
+            "description": "User registration request with email confirmation",
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "url",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "example": "SecurePass123!"
+                },
+                "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "example": "https://example.com/confirm"
+                },
+                "username": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "minLength": 3,
+                    "example": "johndoe"
+                }
+            }
+        },
         "handler.TokenRequest": {
-            "description": "Token request for various operations",
+            "description": "Token-based request for various operations (email confirmation, password reset, token refresh)",
             "type": "object",
             "required": [
                 "token"
@@ -652,22 +766,40 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "BearerAuth": {
-            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "description": "Type \"Bearer\" followed by a space and JWT token. Example: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"
         }
-    }
+    },
+    "tags": [
+        {
+            "description": "User registration, login, and token management endpoints",
+            "name": "Authentication"
+        },
+        {
+            "description": "User profile and account management endpoints",
+            "name": "Account"
+        },
+        {
+            "description": "Email confirmation and verification endpoints",
+            "name": "Email Verification"
+        },
+        {
+            "description": "Password reset, change, and recovery endpoints",
+            "name": "Password Management"
+        }
+    ]
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "1.0.0",
 	Host:             "localhost:9520",
 	BasePath:         "/",
-	Schemes:          []string{"http"},
-	Title:            "GoCode API",
-	Description:      "A quick-setup, fast, Go-chi backend API with authentication and email confirmation",
+	Schemes:          []string{"http", "https"},
+	Title:            "gocode API",
+	Description:      "A secure, fast, and feature-rich Go-Chi backend with JWT authentication, email verification, and password management. Built with modern Go practices and comprehensive security features.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

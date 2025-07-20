@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/base64"
+	"log"
 	"os"
 	"strconv"
 
@@ -12,6 +13,7 @@ import (
 var JwtSecret []byte
 var MailerSetting mailer.MailerSetting
 var RecaptchaSecret string
+var DbConnectionString string
 
 func Init() {
 	godotenv.Load()
@@ -23,6 +25,11 @@ func Init() {
 
 	if len(JwtSecret) < 32 {
 		panic("jwt secret must be at least 32bytes")
+	}
+
+	DbConnectionString = os.Getenv("DB_CONNECTION_STRING")
+	if DbConnectionString == "" {
+		log.Print("warning: server is running without a db conn string. if you are in prod, your db will not work.")
 	}
 
 	mPort, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
@@ -41,8 +48,5 @@ func Init() {
 	recaptchaEnabled, err := strconv.ParseBool(os.Getenv("RECAPTCHA_V3_ENABLED"))
 	if err == nil && recaptchaEnabled {
 		RecaptchaSecret = os.Getenv("RECAPTCHA_V3_SECRET")
-	}
-
-	if recaptchaEnabled {
 	}
 }

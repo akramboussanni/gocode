@@ -11,18 +11,19 @@ import (
 	"github.com/akramboussanni/gocode/internal/utils"
 )
 
-// @Summary Register new user
-// @Description Register a new user account with email confirmation
+// @Summary Register new user account
+// @Description Register a new user account with email confirmation. The system will validate credentials, check for duplicates, hash the password, and send a confirmation email. Username cannot contain '@' symbol.
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param request body Credentials true "User registration credentials"
-// @Success 200 {object} map[string]string "User created successfully"
-// @Failure 400 {string} string "Invalid credentials or duplicate username"
-// @Failure 500 {string} string "Server error"
+// @Param request body RegisterRequest true "User registration credentials including confirmation URL"
+// @Success 200 {object} api.SuccessResponse "User account created successfully - confirmation email sent"
+// @Failure 400 {object} api.ErrorResponse "Invalid credentials, duplicate username, or validation errors"
+// @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (2 requests per minute)"
+// @Failure 500 {object} api.ErrorResponse "Internal server error or email sending failure"
 // @Router /api/auth/register [post]
 func (ar *AuthRouter) HandleRegister(w http.ResponseWriter, r *http.Request) {
-	cred, err := api.DecodeJSON[Credentials](w, r)
+	cred, err := api.DecodeJSON[RegisterRequest](w, r)
 	if err != nil {
 		return
 	}
@@ -62,7 +63,7 @@ func (ar *AuthRouter) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation")
+	token, err := GenerateTokenAndSendEmail(user.Email, "confirmregister", "Email confirmation", cred.Url)
 	if err != nil {
 		api.WriteInternalError(w)
 		return
