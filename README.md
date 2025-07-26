@@ -1,6 +1,11 @@
 # gocode
 a quick-setup, fast, Go-chi backend example repository with cookie-based JWT authentication
 
+## todo
+- redis
+- add worker
+- rm critical env vars
+
 ## developing
 ### python script
 the repo provides a python script to run in dev mode quickly, simply run `python run.py`.

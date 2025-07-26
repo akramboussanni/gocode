@@ -3,8 +3,6 @@ package api
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/akramboussanni/gocode/internal/applog"
 )
 
 func WriteJSON(w http.ResponseWriter, status int, data any) {
@@ -23,7 +21,6 @@ func DecodeJSON[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 	var data T
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
-		applog.Error("Failed to decode JSON:", err)
 		http.Error(w, "invalid request", http.StatusBadRequest)
 		return data, err
 	}
