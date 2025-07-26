@@ -14,10 +14,10 @@
 // @BasePath /
 // @schemes http https
 
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description JWT Bearer token for authenticated endpoints. Format: "Bearer <token>". Required for endpoints marked with @Security BearerAuth.
+// @securityDefinitions.apikey CookieAuth
+// @in cookie
+// @name session
+// @description JWT session cookie for authenticated endpoints. Automatically set by login endpoint. Required for endpoints marked with @Security CookieAuth.
 
 // @securityDefinitions.apikey RecaptchaToken
 // @in header
@@ -28,69 +28,100 @@
 // @tag.description User registration, login, and token management endpoints. reCAPTCHA verification is optional if configured.
 
 // @tag.name Account
-// @tag.description User profile and account management endpoints. All endpoints require JWT authentication.
+// @tag.description User profile and account management endpoints. All endpoints require session cookie authentication.
 
 // @tag.name Email Verification
 // @tag.description Email confirmation and verification endpoints. reCAPTCHA verification is optional if configured.
 
 // @tag.name Password Management
-// @tag.description Password reset, change, and recovery endpoints. Public endpoints have optional reCAPTCHA, authenticated endpoints require JWT.
+// @tag.description Password reset, change, and recovery endpoints. Public endpoints have optional reCAPTCHA, authenticated endpoints require session cookie.
 
 package main
 
 import (
 	"context"
+	"crypto/tls"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api/routes"
 	"github.com/akramboussanni/gocode/internal/db"
-	"github.com/akramboussanni/gocode/internal/mailer"
 	"github.com/akramboussanni/gocode/internal/repo"
 	"github.com/akramboussanni/gocode/internal/utils"
 )
 
 func main() {
 	config.Init()
+
 	err := utils.InitSnowflake(1)
 	if err != nil {
 		panic(err)
 	}
 
-	db.Init(config.DbConnectionString)
+	db.Init(config.App.DbConnectionString)
 	db.RunMigrations()
-
-	mailer.Init(config.MailerSetting)
 
 	repos := repo.NewRepos(db.DB)
 	r := routes.SetupRouter(repos)
 
+	port := strconv.Itoa(config.App.AppPort)
 	server := &http.Server{
-		Addr:    ":9520",
+		Addr:    ":" + port,
 		Handler: r,
 	}
 
-	// Graceful shutdown
+	if config.App.TLSEnabled {
+		if config.App.TLSCertFile == "" || config.App.TLSKeyFile == "" {
+			log.Fatal("TLS_ENABLED is true but TLS_CERT_FILE or TLS_KEY_FILE is not set")
+		}
+
+		server.TLSConfig = &tls.Config{
+			MinVersion:               tls.VersionTLS12,
+			PreferServerCipherSuites: true,
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			},
+		}
+	}
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-quit
-		log.Println("Shutting down server...")
+		log.Println("shutting down server...")
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := server.Shutdown(ctx); err != nil {
-			log.Fatalf("Server forced to shutdown: %v", err)
+			log.Fatalf("server forced to shutdown: %v", err)
 		}
-		log.Println("Server exited gracefully")
+		log.Println("server exited gracefully")
 	}()
 
-	log.Println("server will run @ localhost:9520")
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("error when starting server: %v", err)
+	protocol := "http"
+	if config.App.TLSEnabled {
+		protocol = "https"
+	}
+
+	log.Printf("server will run @ %s://localhost:%s", protocol, port)
+
+	if config.App.TLSEnabled {
+		if err := server.ListenAndServeTLS(config.App.TLSCertFile, config.App.TLSKeyFile); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("error when starting TLS server: %v", err)
+		}
+	} else {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("error when starting server: %v", err)
+		}
 	}
 }

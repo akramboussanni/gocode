@@ -9,7 +9,7 @@ import (
 )
 
 func GetClientIP(r *http.Request) string {
-	if config.TrustIpHeaders {
+	if config.App.TrustIpHeaders {
 		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
 			if ip := strings.Split(xff, ",")[0]; ip != "" {
 				return strings.TrimSpace(ip)

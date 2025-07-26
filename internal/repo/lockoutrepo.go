@@ -87,7 +87,7 @@ func (r *LockoutRepo) AddFailedLogin(ctx context.Context, failedLogin model.Fail
 
 func (r *LockoutRepo) CountRecentFailures(ctx context.Context, userID int64, ipAddress string) (int, error) {
 	now := time.Now().UTC().Unix()
-	ago := now - config.FailedLoginBacktrack
+	ago := now - config.App.FailedLoginBacktrack
 
 	var count int
 	err := r.db.GetContext(ctx, &count, `

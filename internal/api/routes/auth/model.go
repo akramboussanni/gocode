@@ -1,4 +1,4 @@
-package authhandler
+package auth
 
 // @Description User registration request with email confirmation
 type RegisterRequest struct {
@@ -14,20 +14,15 @@ type LoginRequest struct {
 	Password string `json:"password" example:"SecurePass123!" binding:"required"`
 }
 
-// @Description Authentication response containing JWT tokens
-type LoginResponse struct {
-	Session string `json:"session" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjM0NTY3ODkwLCJ0b2tlbl9pZCI6ImFiY2RlZiIsImlhdCI6MTY0MDk5NTIwMCwiZXhwIjoxNjQwOTk1MjAwLCJlbWFpbCI6ImpvaG5AZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciJ9.signature" description:"JWT session token valid for 24 hours"`
-	Refresh string `json:"refresh" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjM0NTY3ODkwLCJ0b2tlbl9pZCI6ImFiY2RlZiIsImlhdCI6MTY0MDk5NTIwMCwiZXhwIjoxNjQwOTk1MjAwLCJlbWFpbCI6ImpvaG5AZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciJ9.signature" description:"JWT refresh token valid for 7 days"`
+// @Description Email-based request for password reset and email confirmation resend
+type EmailRequest struct {
+	Email string `json:"email" example:"john@example.com" binding:"required" format:"email"`
+	Url   string `json:"url" example:"https://example.com/reset" format:"uri" description:"Optional URL for email templates"`
 }
 
 // @Description Token-based request for various operations (email confirmation, password reset, token refresh)
 type TokenRequest struct {
 	Token string `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." binding:"required" description:"JWT token or base64 encoded token"`
-}
-
-// @Description Email-based request for password reset and email confirmation resend
-type EmailRequest struct {
-	Email string `json:"email" example:"john@example.com" binding:"required" format:"email"`
 	Url   string `json:"url" example:"https://example.com/reset" format:"uri" description:"Optional URL for email templates"`
 }
 

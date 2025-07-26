@@ -3,11 +3,11 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api"
 	"github.com/akramboussanni/gocode/internal/jwt"
+	"github.com/akramboussanni/gocode/internal/model"
 	"github.com/akramboussanni/gocode/internal/repo"
 	"github.com/akramboussanni/gocode/internal/utils"
 	"github.com/go-chi/chi/v5"
@@ -15,14 +15,14 @@ import (
 
 func AddAuth(r chi.Router, ur *repo.UserRepo, tr *repo.TokenRepo) {
 	r.Use(func(next http.Handler) http.Handler {
-		return JWTAuth(config.JwtSecret, ur, tr, jwt.Credentials)(next)
+		return JWTAuth(config.JwtSecretBytes, ur, tr, model.CredentialJwt)(next)
 	})
 }
 
-func JWTAuth(secret []byte, ur *repo.UserRepo, tr *repo.TokenRepo, expectedType jwt.TokenType) func(http.Handler) http.Handler {
+func JWTAuth(secret []byte, ur *repo.UserRepo, tr *repo.TokenRepo, expectedType model.JwtType) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims := GetClaimsFromHeader(w, r, secret, ur, tr)
+			claims := GetClaimsFromCookie(w, r, secret, ur, tr)
 			if claims == nil {
 				return
 			}
@@ -49,19 +49,18 @@ func JWTAuth(secret []byte, ur *repo.UserRepo, tr *repo.TokenRepo, expectedType 
 	}
 }
 
-func GetClaimsFromHeader(w http.ResponseWriter, r *http.Request, secret []byte, ur *repo.UserRepo, tr *repo.TokenRepo) *jwt.Claims {
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+func GetClaimsFromCookie(w http.ResponseWriter, r *http.Request, secret []byte, ur *repo.UserRepo, tr *repo.TokenRepo) *jwt.Claims {
+	sessionCookie, err := r.Cookie("session")
+	if err != nil {
 		api.WriteInvalidCredentials(w)
 		return nil
 	}
 
-	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-	return GetClaims(w, r, tokenStr, secret, tr)
+	return GetClaims(w, r, sessionCookie.Value, secret, tr)
 }
 
 func GetClaims(w http.ResponseWriter, r *http.Request, token string, secret []byte, tr *repo.TokenRepo) *jwt.Claims {
-	claims, err := jwt.ValidateToken(token, config.JwtSecret, tr)
+	claims, err := jwt.ValidateToken(token, config.JwtSecretBytes, tr)
 	if err != nil {
 		api.WriteInvalidCredentials(w)
 		return nil

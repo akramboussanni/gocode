@@ -1,4 +1,4 @@
-package log
+package applog
 
 import (
 	"log"
@@ -15,17 +15,17 @@ func NewStdLogger() *StdLogger {
 	}
 }
 
-func (l *StdLogger) Info(args ...interface{}) {
+func (l *StdLogger) Info(args ...any) {
 	l.logger.SetPrefix("INFO: ")
 	l.logger.Println(args...)
 }
 
-func (l *StdLogger) Warn(args ...interface{}) {
+func (l *StdLogger) Warn(args ...any) {
 	l.logger.SetPrefix("WARN: ")
 	l.logger.Println(args...)
 }
 
-func (l *StdLogger) Error(args ...interface{}) {
+func (l *StdLogger) Error(args ...any) {
 	l.logger.SetPrefix("ERROR: ")
 	l.logger.Println(args...)
 }

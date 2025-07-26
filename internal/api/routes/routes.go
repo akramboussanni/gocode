@@ -5,17 +5,20 @@ import (
 
 	"github.com/akramboussanni/gocode/internal/api"
 	"github.com/akramboussanni/gocode/internal/api/routes/auth"
-	"github.com/akramboussanni/gocode/internal/log"
+	"github.com/akramboussanni/gocode/internal/middleware"
 	"github.com/akramboussanni/gocode/internal/repo"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func SetupRouter(repos *repo.Repos) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	r.Use(middleware.SecurityHeaders)
+	r.Use(middleware.CORSHeaders)
+
+	r.Use(chimiddleware.Logger)
+	r.Use(chimiddleware.Recoverer)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("github.com/akramboussanni/gocode"))
@@ -23,10 +26,7 @@ func SetupRouter(repos *repo.Repos) http.Handler {
 
 	api.AddSwaggerRoutes(r)
 
-	// Select logger implementation here
-	logger := log.NewStdLogger()
-
-	r.Mount("/api/auth", auth.NewAuthRouter(repos.User, repos.Token, repos.Lockout, logger))
+	r.Mount("/auth", auth.NewAuthRouter(repos.User, repos.Token, repos.Lockout))
 
 	return r
 }

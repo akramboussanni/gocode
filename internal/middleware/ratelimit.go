@@ -9,7 +9,7 @@ import (
 )
 
 func AddRatelimit(r chi.Router, requestLimit int, window time.Duration) {
-	if config.TrustIpHeaders {
+	if config.App.TrustIpHeaders {
 		r.Use(httprate.LimitByRealIP(requestLimit, window))
 	} else {
 		r.Use(httprate.LimitByIP(requestLimit, window))

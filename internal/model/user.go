@@ -13,5 +13,5 @@ type User struct {
 	EmailConfirmIssuedAt  int64  `db:"email_confirm_issuedat" json:"-"`
 	PasswordResetToken    string `db:"password_reset_token" json:"-"`
 	PasswordResetIssuedAt int64  `db:"password_reset_issuedat" json:"-"`
-	JwtSessionID          int    `db:"jwt_session_id" json:"-"`
+	JwtSessionID          int64  `db:"jwt_session_id" json:"-"`
 }

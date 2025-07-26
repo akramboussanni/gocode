@@ -21,7 +21,7 @@ func (jwt Jwt) GenerateToken() string {
 
 	data := base64.URLEncoding.EncodeToString(header) + "." + base64.URLEncoding.EncodeToString(payload)
 
-	h := hmac.New(sha256.New, config.JwtSecret)
+	h := hmac.New(sha256.New, config.JwtSecretBytes)
 	h.Write([]byte(data))
 	rawSig := h.Sum(nil)
 

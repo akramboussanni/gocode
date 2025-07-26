@@ -1,20 +1,20 @@
 package jwt
 
-import "time"
+import (
+	"time"
+
+	"github.com/akramboussanni/gocode/config"
+	"github.com/akramboussanni/gocode/internal/model"
+)
 
 type Jwt struct {
 	Header  Header
 	Payload Claims
 }
 
-var tokenExpirations = map[TokenType]int64{
-	Credentials: 24 * 3600,     //24h
-	Refresh:     7 * 24 * 3600, //1week
-}
-
-func (j Jwt) WithType(t TokenType) Jwt {
+func (j Jwt) WithType(t model.JwtType) Jwt {
 	j.Payload.Type = t
-	j.Payload.Expiration = time.Now().UTC().Unix() + tokenExpirations[t]
+	j.Payload.Expiration = time.Now().UTC().Unix() + config.App.JwtExpirations[string(t)]
 	return j
 }
 
@@ -24,19 +24,12 @@ type Header struct {
 }
 
 type Claims struct {
-	UserID     int64     `json:"sub"`
-	TokenID    string    `json:"jti"`
-	SessionID  int       `json:"sid"`
-	IssuedAt   int64     `json:"iat"`
-	Expiration int64     `json:"exp"`
-	Email      string    `json:"email"`
-	Role       string    `json:"role"`
-	Type       TokenType `json:"type"`
+	UserID     int64         `json:"sub"`
+	TokenID    string        `json:"jti"`
+	SessionID  int64         `json:"sid"`
+	IssuedAt   int64         `json:"iat"`
+	Expiration int64         `json:"exp"`
+	Email      string        `json:"email"`
+	Role       string        `json:"role"`
+	Type       model.JwtType `json:"type"`
 }
-
-type TokenType string
-
-const (
-	Credentials TokenType = "credential"
-	Refresh     TokenType = "refresh"
-)

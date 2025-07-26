@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"log"
 
+	"github.com/akramboussanni/gocode/internal/applog"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
@@ -21,7 +22,7 @@ var migrationsFS embed.FS
 var DB *sqlx.DB
 
 func Init(dsn string) {
-	log.Println("using pgx db")
+	applog.Info("using pgx db")
 
 	var err error
 	DB, err = sqlx.Open("pgx", dsn)

@@ -13,7 +13,7 @@ import (
 )
 
 func HashJwt(message string) string {
-	h := hmac.New(sha256.New, config.JwtSecret)
+	h := hmac.New(sha256.New, config.JwtSecretBytes)
 	h.Write([]byte(message))
 	return hex.EncodeToString(h.Sum(nil))
 }

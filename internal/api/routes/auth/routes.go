@@ -4,15 +4,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/akramboussanni/gocode/internal/api/routes/auth/authhandler"
-	"github.com/akramboussanni/gocode/internal/log"
 	"github.com/akramboussanni/gocode/internal/middleware"
 	"github.com/akramboussanni/gocode/internal/repo"
 	"github.com/go-chi/chi/v5"
 )
 
-func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo, lockoutRepo *repo.LockoutRepo, logger log.Logger) http.Handler {
-	ar := &authhandler.AuthRouter{UserRepo: userRepo, TokenRepo: tokenRepo, LockoutRepo: lockoutRepo, Logger: logger}
+type AuthRouter struct {
+	UserRepo    *repo.UserRepo
+	TokenRepo   *repo.TokenRepo
+	LockoutRepo *repo.LockoutRepo
+}
+
+func NewAuthRouter(userRepo *repo.UserRepo, tokenRepo *repo.TokenRepo, lockoutRepo *repo.LockoutRepo) http.Handler {
+	ar := &AuthRouter{UserRepo: userRepo, TokenRepo: tokenRepo, LockoutRepo: lockoutRepo}
 	r := chi.NewRouter()
 
 	r.Use(middleware.MaxBytesMiddleware(1 << 20))

@@ -13,7 +13,7 @@ import (
 )
 
 func AddRecaptcha(r chi.Router) {
-	if config.RecaptchaSecret != "" {
+	if config.App.RecaptchaEnabled && config.App.RecaptchaSecret != "" {
 		r.Use(validateRecaptcha)
 	}
 }
@@ -29,7 +29,7 @@ func validateRecaptcha(next http.Handler) http.Handler {
 		}
 
 		req := model.RecaptchaVerificationPayload{
-			Secret:   config.RecaptchaSecret,
+			Secret:   config.App.RecaptchaSecret,
 			Response: token,
 			RemoteIP: ip,
 		}
@@ -53,7 +53,7 @@ func validateRecaptcha(next http.Handler) http.Handler {
 			return
 		}
 
-		if recaptchaResp.Score < config.RecaptchaThreshold || !recaptchaResp.Success {
+		if recaptchaResp.Score < config.App.RecaptchaThreshold || !recaptchaResp.Success {
 			http.Error(w, "recaptcha fail", http.StatusForbidden)
 			return
 		}

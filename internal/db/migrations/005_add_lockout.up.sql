@@ -14,7 +14,7 @@ CREATE TABLE lockouts (
     user_id INT NULL,
     ip_address VARCHAR(45) NULL,
     locked_until BIGINT NOT NULL,
-    reason VARCHAR(255) NULL,
+    reason VARCHAR(255) NULL
 );
 
 CREATE INDEX idx_lockouts_user ON lockouts(user_id);

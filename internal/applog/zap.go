@@ -1,4 +1,4 @@
-package log
+package applog
 
 import (
 	"go.uber.org/zap"
@@ -13,14 +13,14 @@ func NewZapLogger() *ZapLogger {
 	return &ZapLogger{logger: l.Sugar()}
 }
 
-func (l *ZapLogger) Info(args ...interface{}) {
+func (l *ZapLogger) Info(args ...any) {
 	l.logger.Infow("", args...)
 }
 
-func (l *ZapLogger) Warn(args ...interface{}) {
+func (l *ZapLogger) Warn(args ...any) {
 	l.logger.Warnw("", args...)
 }
 
-func (l *ZapLogger) Error(args ...interface{}) {
+func (l *ZapLogger) Error(args ...any) {
 	l.logger.Errorw("", args...)
 }

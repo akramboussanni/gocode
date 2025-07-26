@@ -1,4 +1,4 @@
-package authhandler
+package auth
 
 import (
 	"math"
@@ -7,50 +7,51 @@ import (
 
 	"github.com/akramboussanni/gocode/config"
 	"github.com/akramboussanni/gocode/internal/api"
+	"github.com/akramboussanni/gocode/internal/applog"
 	"github.com/akramboussanni/gocode/internal/jwt"
 	"github.com/akramboussanni/gocode/internal/middleware"
 	"github.com/akramboussanni/gocode/internal/model"
 	"github.com/akramboussanni/gocode/internal/utils"
 )
 
-// @Summary Authenticate user and get JWT tokens
-// @Description Authenticate user with email and password, returning session and refresh JWT tokens. User must have confirmed their email address.
+// @Summary Authenticate user and set session cookies
+// @Description Authenticate user with email and password, setting session and refresh cookies. User must have confirmed their email address.
 // @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param X-Recaptcha-Token header string false "reCAPTCHA verification token (optional if reCAPTCHA is not configured)"
 // @Param request body LoginRequest true "User login credentials"
-// @Success 200 {object} LoginResponse "Authentication successful - returns session and refresh tokens"
+// @Success 200 {object} api.SuccessResponse "Authentication successful - session and refresh cookies set"
 // @Failure 400 {object} api.ErrorResponse "Invalid request format or missing required fields"
 // @Failure 401 {object} api.ErrorResponse "Invalid credentials or email not confirmed"
 // @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (8 requests per minute)"
 // @Failure 500 {object} api.ErrorResponse "Internal server error"
-// @Router /api/auth/login [post]
+// @Router /auth/login [post]
 func (ar *AuthRouter) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	ip := utils.GetClientIP(r)
-	ar.Logger.Info("HandleLogin called", "remoteAddr:", ip)
+	applog.Info("HandleLogin called", "remoteAddr:", ip)
 	cred, err := api.DecodeJSON[LoginRequest](w, r)
 	if err != nil {
-		ar.Logger.Error("Failed to decode login request:", err)
+		applog.Error("Failed to decode login request:", err)
 		return
 	}
 
 	user, err := ar.UserRepo.GetUserByEmail(r.Context(), cred.Email)
 	if err != nil || user == nil {
-		ar.Logger.Warn("Login failed: user not found or db error", "email:", cred.Email, "err:", err)
+		applog.Warn("Login failed: user not found or db error", "email:", cred.Email, "err:", err)
 		api.WriteInvalidCredentials(w)
 		return
 	}
 
 	lockedOut, err := ar.LockoutRepo.IsLockedOut(r.Context(), user.ID, ip)
 	if err != nil {
-		ar.Logger.Error("Error checking lockout:", err)
+		applog.Error("Error checking lockout:", err)
 		api.WriteInternalError(w)
 		return
 	}
 
 	if lockedOut {
-		ar.Logger.Warn("Account locked out", "userID:", user.ID, "ip:", ip)
+		applog.Warn("Account locked out", "userID:", user.ID, "ip:", ip)
 		api.WriteMessage(w, 423, "error", "account locked")
 		return
 	}
@@ -61,84 +62,92 @@ func (ar *AuthRouter) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		err := ar.LockoutRepo.AddFailedLogin(r.Context(), model.FailedLogin{ID: nowMicro, UserID: user.ID, IPAddress: ip, AttemptedAt: now, Active: true})
 
 		if err != nil {
-			ar.Logger.Error("Failed to add failed login:", err)
+			applog.Error("Failed to add failed login:", err)
 			api.WriteInternalError(w)
 			return
 		}
 
 		count, err := ar.LockoutRepo.CountRecentFailures(r.Context(), user.ID, ip)
 		if err != nil {
-			ar.Logger.Error("Failed to count recent failures:", err)
+			applog.Error("Failed to count recent failures:", err)
 			api.WriteInternalError(w)
 			return
 		}
 
-		if count > config.LockoutCount {
+		if count > config.App.LockoutCount {
 			err := ar.LockoutRepo.AddLockout(r.Context(), model.Lockout{
 				ID:          nowMicro,
 				UserID:      user.ID,
 				IPAddress:   ip,
-				LockedUntil: now + config.LockoutDuration,
+				LockedUntil: now + config.App.LockoutDuration,
 				Reason:      "failed logins",
 				Active:      true,
 			})
 
 			if err != nil {
-				ar.Logger.Error("Failed to add lockout:", err)
+				applog.Error("Failed to add lockout:", err)
 				api.WriteInternalError(w)
 				return
 			}
 
-			ar.Logger.Warn("User locked out due to failed logins", "userID:", user.ID, "ip:", ip)
+			applog.Warn("User locked out due to failed logins", "userID:", user.ID, "ip:", ip)
 			api.WriteMessage(w, 423, "error", "account locked")
 			return
 		}
 
-		ar.Logger.Warn("Invalid password for user", "userID:", user.ID)
+		applog.Warn("Invalid password for user", "userID:", user.ID)
 		api.WriteInvalidCredentials(w)
 		return
 	}
 
 	if !user.EmailConfirmed {
-		ar.Logger.Warn("Login attempt with unconfirmed email", "userID:", user.ID)
+		applog.Warn("Login attempt with unconfirmed email", "userID:", user.ID)
 		api.WriteInvalidCredentials(w)
 		return
 	}
 
-	ar.Logger.Info("User login successful", "userID:", user.ID)
-	api.WriteJSON(w, 200, GenerateLogin(jwt.CreateJwtFromUser(user)))
+	loginTokens := GenerateLogin(jwt.CreateJwtFromUser(user))
+
+	utils.ClearAllCookies(w)
+	utils.SetSessionCookie(w, loginTokens.Session)
+	utils.SetRefreshCookie(w, loginTokens.Refresh)
+
+	applog.Info("User login successful", "userID:", user.ID)
+	api.WriteJSON(w, 200, map[string]string{"message": "login successful"})
 }
 
-// @Summary Refresh JWT tokens
-// @Description Refresh user's JWT tokens using a valid refresh token. The old refresh token will be revoked and new session/refresh tokens will be issued.
+// @Summary Refresh session cookies
+// @Description Refresh user's session cookies using a valid refresh cookie. The old refresh token will be revoked and new session/refresh cookies will be set.
 // @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param X-Recaptcha-Token header string false "reCAPTCHA verification token (optional if reCAPTCHA is not configured)"
-// @Param request body TokenRequest true "Refresh token"
-// @Success 200 {object} LoginResponse "Token refresh successful - returns new session and refresh tokens"
-// @Failure 400 {object} api.ErrorResponse "Invalid request format or missing token"
+// @Success 200 {object} api.SuccessResponse "Token refresh successful - new session and refresh cookies set"
 // @Failure 401 {object} api.ErrorResponse "Invalid, expired, or revoked refresh token"
 // @Failure 429 {object} api.ErrorResponse "Rate limit exceeded (8 requests per minute)"
 // @Failure 500 {object} api.ErrorResponse "Internal server error"
-// @Router /api/auth/refresh [post]
+// @Router /auth/refresh [post]
 func (ar *AuthRouter) HandleRefresh(w http.ResponseWriter, r *http.Request) {
-	ar.Logger.Info("HandleRefresh called")
-	req, err := api.DecodeJSON[TokenRequest](w, r)
+	applog.Info("HandleRefresh called")
+
+	// Get refresh token from cookie
+	refreshCookie, err := r.Cookie("refresh")
 	if err != nil {
-		ar.Logger.Error("Failed to decode refresh request:", err)
+		applog.Warn("No refresh cookie found")
+		api.WriteInvalidCredentials(w)
 		return
 	}
 
-	claims := middleware.GetClaims(w, r, req.Token, config.JwtSecret, ar.TokenRepo)
-	if claims == nil || claims.Type != jwt.Refresh {
-		ar.Logger.Warn("Invalid or missing refresh token")
+	claims := middleware.GetClaims(w, r, refreshCookie.Value, config.JwtSecretBytes, ar.TokenRepo)
+	if claims == nil || claims.Type != model.RefreshJwt {
+		applog.Warn("Invalid or missing refresh token")
+		api.WriteInvalidCredentials(w)
 		return
 	}
 
 	user, err := ar.UserRepo.GetUserByID(r.Context(), claims.UserID)
 	if err != nil || user == nil {
-		ar.Logger.Warn("Refresh failed: user not found or db error", "userID:", claims.UserID, "err:", err)
+		applog.Warn("Refresh failed: user not found or db error", "userID:", claims.UserID, "err:", err)
 		api.WriteInvalidCredentials(w)
 		return
 	}
@@ -151,8 +160,14 @@ func (ar *AuthRouter) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 
 	err = ar.TokenRepo.RevokeToken(r.Context(), blacklist)
 	if err != nil {
-		ar.Logger.Error("Failed to revoke old refresh token:", err)
+		applog.Error("Failed to revoke old refresh token:", err)
 	}
-	ar.Logger.Info("Refresh token successful", "userID:", user.ID)
-	api.WriteJSON(w, 200, GenerateLogin(jwt.CreateJwtFromUser(user)))
+
+	loginTokens := GenerateLogin(jwt.CreateJwtFromUser(user))
+
+	utils.SetSessionCookie(w, loginTokens.Session)
+	utils.SetRefreshCookie(w, loginTokens.Refresh)
+
+	applog.Info("Refresh token successful", "userID:", user.ID)
+	api.WriteJSON(w, 200, map[string]string{"message": "tokens refreshed"})
 }
